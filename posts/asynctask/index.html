@@ -150,6 +150,8 @@ A program running on a single thread performs its tasks synchronously - meaning 
     <li><a href="#declaration">Declaration</a></li>
     <li><a href="#making-a-network-call">Making a network call</a></li>
     <li><a href="#cautions">Cautions</a></li>
+    <li><a href="#errors-to-expect">Errors to Expect</a></li>
+    <li><a href="#referenes">Referenes</a></li>
   </ul>
 </nav>
     </div>
@@ -190,7 +192,7 @@ A program running on a single thread performs its tasks synchronously - meaning 
 <h2 id="declaration">Declaration</h2>
 <p>AsyncTask is an abstract generic class that needs to be implemented to use its functionality. To make a class extend AsyncTask, the generic class needs three parameters - </p>
 <ul>
-<li><em>Parameters</em> - to pass onto any parameter into class</li>
+<li><em>Parameters</em> - to pass onto any parameter into class, used as parmeters for the network call</li>
 <li><em>Progress</em> - To keep track of progress updates</li>
 <li><em>Result</em> - Format of the result expected</li>
 </ul>
@@ -198,9 +200,9 @@ A program running on a single thread performs its tasks synchronously - meaning 
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ApiCall</span>: AsyncTask&lt;String, Void, String&gt;() {  
 </span></span><span style="display:flex;"><span>  
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>AsyncTask is an abstract method and as suggested by the squiggly lines under <em>ApiCall</em> we need to override some of the methods in the class. The only method we must override is <em>doInBackground.</em> This method accepts a variable list of “Params” type arguments and returns the result. We passed a String type for the parameters so our <em>doInBackground</em> has a variable list of strings. It returns String since we expect a result of String type.</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ApiCall</span>: AsyncTask&lt;String, Void, String&gt;() {  
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">doInBackground</span>(<span style="color:#66d9ef">vararg</span> <span style="color:#66d9ef">param</span>: String?): String? {  
+</span></span></code></pre></div><p>AsyncTask is an abstract method. We need to override some of the methods in the class. The only method compulsory to override is <em>doInBackground.</em> This method accepts a variable list of “Params” type arguments and returns the result. We passed a String type for the parameters so our <em>doInBackground</em> has a variable list of strings. We expect a JSONObject responce from out api, so the <em>Result</em> is JSOBObject type.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ApiCall</span>: AsyncTask&lt;String, Void, JSONObject&gt;() {  
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">doInBackground</span>(<span style="color:#66d9ef">vararg</span> <span style="color:#66d9ef">param</span>: String?): JSONObject? {  
 </span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">null</span>  
 </span></span><span style="display:flex;"><span>    }
 </span></span><span style="display:flex;"><span>}
@@ -211,13 +213,13 @@ A program running on a single thread performs its tasks synchronously - meaning 
 <li><em>onProgressUpdate</em>: This takes one single “Progress” (Void in our case) type argument and returns nothing. It is used to keep tabs on the progress of the task in this thread. Its actions are discussed later.</li>
 </ul>
 <p>The skeleton of our <em>ApiCall</em> now looks like this</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ApiCall</span>: AsyncTask&lt;String, Void, String&gt;() {  
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ApiCall</span>: AsyncTask&lt;String, Void, JSONObject&gt;() {  
 </span></span><span style="display:flex;"><span>  
 </span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">onPreExecute</span>() {  
 </span></span><span style="display:flex;"><span>       
 </span></span><span style="display:flex;"><span>    }  
 </span></span><span style="display:flex;"><span>  
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">doInBackground</span>(<span style="color:#66d9ef">vararg</span> <span style="color:#66d9ef">param</span>: String?): String? {  
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">doInBackground</span>(<span style="color:#66d9ef">vararg</span> <span style="color:#66d9ef">param</span>: String?): JSONObject? {  
 </span></span><span style="display:flex;"><span>  
 </span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">null</span>  
 </span></span><span style="display:flex;"><span>    }  
@@ -226,7 +228,7 @@ A program running on a single thread performs its tasks synchronously - meaning 
 </span></span><span style="display:flex;"><span>         
 </span></span><span style="display:flex;"><span>    }  
 </span></span><span style="display:flex;"><span>  
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">onPostExecute</span>(result: String?) {  
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">onPostExecute</span>(result: JSONObject?) {  
 </span></span><span style="display:flex;"><span>  
 </span></span><span style="display:flex;"><span>    }  
 </span></span><span style="display:flex;"><span>  
@@ -249,8 +251,7 @@ A program running on a single thread performs its tasks synchronously - meaning 
 </span></span><span style="display:flex;"><span><span style="color:#f92672">&lt;/manifest&gt;</span>
 </span></span></code></pre></div><p>For the API call we store the link to the API in a constant and keep a variable to store the expected result value. Let’s make a request to the “/manga” endpoint of the api. We open the string as an URL and try to open a connection as a HTTPUrlConnection (from java.net package)</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span>	<span style="color:#66d9ef">val</span> tag = <span style="color:#e6db74">&#34;API - call&#34;</span>  
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">val</span> api_url = <span style="color:#e6db74">&#34;https://api.mangadex.org&#34;</span>  
-</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">val</span> output = StringBuilder();  
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">val</span> api_url = <span style="color:#e6db74">&#34;https://api.mangadex.org&#34;</span>
 </span></span><span style="display:flex;"><span>  
 </span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">doInBackground</span>(<span style="color:#66d9ef">vararg</span> <span style="color:#66d9ef">param</span>: String?): String {  
 </span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">val</span> endpoint = <span style="color:#66d9ef">param</span>[<span style="color:#ae81ff">0</span>]  
@@ -260,63 +261,68 @@ A program running on a single thread performs its tasks synchronously - meaning 
 </span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">val</span> conn = url.openConnection() <span style="color:#66d9ef">as</span> HttpURLConnection  
 </span></span><span style="display:flex;"><span>        conn.requestMethod = <span style="color:#e6db74">&#34;GET&#34;</span>  
 </span></span><span style="display:flex;"><span>        conn.connect()  
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">val</span> output = StringBuilder()
+</span></span><span style="display:flex;"><span>		
 </span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">return</span> output.toString();  
 </span></span><span style="display:flex;"><span>    }
 </span></span></code></pre></div><p>If the connection is established successfully the <em>conn</em> object produces an <em>inputStream</em> that we can read using basic IO</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">doInBackground</span>(<span style="color:#66d9ef">vararg</span> <span style="color:#66d9ef">param</span>: String?): String {  
-</span></span><span style="display:flex;"><span>  
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">val</span> url = URL(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">$api</span><span style="color:#e6db74">_url/</span><span style="color:#e6db74">${param[0]}</span><span style="color:#e6db74">&#34;</span>)  
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">val</span> conn = url.openConnection() <span style="color:#66d9ef">as</span> HttpURLConnection  
-</span></span><span style="display:flex;"><span>  conn.requestMethod = <span style="color:#e6db74">&#34;GET&#34;</span>  
-</span></span><span style="display:flex;"><span>  conn.connect()  
-</span></span><span style="display:flex;"><span>  
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">val</span> inputStream = InputStreamReader(conn.inputStream)  
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">val</span> reader = BufferedReader(inputStream)  
-</span></span><span style="display:flex;"><span>  
-</span></span><span style="display:flex;"><span>  output.clear()  
-</span></span><span style="display:flex;"><span>  
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">var</span> line: String?;  
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">while</span>(reader.readLine().also { line = <span style="color:#66d9ef">it</span>} <span style="color:#f92672">!=</span> <span style="color:#66d9ef">null</span>) {  
-</span></span><span style="display:flex;"><span>      output.append(line)  
-</span></span><span style="display:flex;"><span>  }  
-</span></span><span style="display:flex;"><span>  
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> output.toString();  
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">doInBackground</span>(<span style="color:#66d9ef">vararg</span> <span style="color:#66d9ef">param</span>: String?): JSONObject {  
+</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">val</span> url = URL(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">$api</span><span style="color:#e6db74">_url/</span><span style="color:#e6db74">${param[0]}</span><span style="color:#e6db74">&#34;</span>)  
+</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">val</span> conn = url.openConnection() <span style="color:#66d9ef">as</span> HttpURLConnection  
+</span></span><span style="display:flex;"><span>	  conn.requestMethod = <span style="color:#e6db74">&#34;GET&#34;</span>  
+</span></span><span style="display:flex;"><span>	  conn.connect()  
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">val</span> inputStream = InputStreamReader(conn.inputStream)  
+</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">val</span> reader = BufferedReader(inputStream)  
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">val</span> output = StringBuilder() 
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">var</span> line: String?;  
+</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">while</span>(reader.readLine().also { line = <span style="color:#66d9ef">it</span>} <span style="color:#f92672">!=</span> <span style="color:#66d9ef">null</span>) {  <span style="color:#75715e">// reader sends api responce as input stream
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	      output.append(line)  
+</span></span><span style="display:flex;"><span>	  }  
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">return</span> JSONObject(output.toString())  
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>We create an <em>inputStream</em> object from the connection and read it using a <em>BufferedReader.</em> For every line we read, we append it onto the output object we declared earlier. Finally we return the output as a string since it’s our result. </p>
 <p>To view the result, we can print the result inside the <em>onPostExecute</em> method to check if the network call returned our expected value. This method is called immediately after the <em>doInBackground</em> method with the returned result.</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">onPostExecute</span>(result: String?) {  
-</span></span><span style="display:flex;"><span>  Log.i(tag, result<span style="color:#f92672">!!</span>)  
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">onPostExecute</span>(result: JSONObject?) {  
+</span></span><span style="display:flex;"><span>  	Log.i(tag, result<span style="color:#f92672">!!</span>.toString())  
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>During the <em>doInBackground</em> method we could keep track of the progress of the network call. Say we pass a list of endpoints and are making calls to each one of them. We can keep updating the progress by calling the <em>publishProgress(Progress)</em> method.</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">doInBackground</span>(<span style="color:#66d9ef">vararg</span> <span style="color:#66d9ef">param</span>: String?): String {  
-</span></span><span style="display:flex;"><span>  
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">val</span> url = URL(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">$api</span><span style="color:#e6db74">_url/</span><span style="color:#e6db74">${param[0]}</span><span style="color:#e6db74">&#34;</span>)  
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">val</span> conn = url.openConnection() <span style="color:#66d9ef">as</span> HttpURLConnection  
-</span></span><span style="display:flex;"><span>  conn.requestMethod = <span style="color:#e6db74">&#34;GET&#34;</span>  
-</span></span><span style="display:flex;"><span>  conn.connect()  
-</span></span><span style="display:flex;"><span>  
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">val</span> inputStream = InputStreamReader(conn.inputStream)  
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">val</span> reader = BufferedReader(inputStream)  
-</span></span><span style="display:flex;"><span>  
-</span></span><span style="display:flex;"><span>  output.clear()  
-</span></span><span style="display:flex;"><span>  
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">var</span> line: String?;  
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">while</span>(reader.readLine().also { line = <span style="color:#66d9ef">it</span>} <span style="color:#f92672">!=</span> <span style="color:#66d9ef">null</span>) {  
-</span></span><span style="display:flex;"><span>      publishProgress() <span style="color:#75715e">// PROGRESS UPDATE  
-</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>      output.append(line)  
-</span></span><span style="display:flex;"><span>  }  
-</span></span><span style="display:flex;"><span>  Log.i(tag, output.toString())  
-</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">return</span> output.toString();  
+</span></span></code></pre></div><p>Expected Log can be seen on this link: <a href="https://api.mangadex.org/manga">https://api.mangadex.org/manga</a></p>
+<p>During the <em>doInBackground</em> method we could keep track of the progress of the network call. Say we pass a list of endpoints and are making calls to each one of them. We can keep updating the progress by calling the <em>publishProgress(Progress)</em> method.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">doInBackground</span>(<span style="color:#66d9ef">vararg</span> <span style="color:#66d9ef">param</span>: String?): JSONObject {  
+</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">val</span> url = URL(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">$api</span><span style="color:#e6db74">_url/</span><span style="color:#e6db74">${param[0]}</span><span style="color:#e6db74">&#34;</span>)  
+</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">val</span> conn = url.openConnection() <span style="color:#66d9ef">as</span> HttpURLConnection  
+</span></span><span style="display:flex;"><span>	  conn.requestMethod = <span style="color:#e6db74">&#34;GET&#34;</span>  
+</span></span><span style="display:flex;"><span>	  conn.connect()  
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">val</span> inputStream = InputStreamReader(conn.inputStream)  
+</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">val</span> reader = BufferedReader(inputStream)  
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">val</span> output = StringBuilder()  
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">var</span> line: String?;  
+</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">while</span>(reader.readLine().also { line = <span style="color:#66d9ef">it</span>} <span style="color:#f92672">!=</span> <span style="color:#66d9ef">null</span>) {  
+</span></span><span style="display:flex;"><span>	      publishProgress() <span style="color:#75715e">// PROGRESS UPDATE  
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	      output.append(line)  
+</span></span><span style="display:flex;"><span>	  }  
+</span></span><span style="display:flex;"><span>	  Log.i(tag, output.toString())  
+</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">return</span> output.toString();  
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>Every time we call the <em>publishProgress()</em> method, the task calls the <em>onProgressUpdate</em> method. To every time we receive a new line we can update the user on the progress</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">onProgressUpdate</span>(<span style="color:#66d9ef">vararg</span> values: Void?) {  
 </span></span><span style="display:flex;"><span>  Log.i(tag, <span style="color:#e6db74">&#34;New Line Received&#34;</span>)  
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><p>The task can also be canceled at any point in time by calling the cancel(boolean) method. This will make the <em>onCancelled()</em> method on the class return true from thereon.</p>
-<p>We can call make this task execute from the UI thread by using an object of this class and calling it’s <em>execute()</em> method. To make a network call on the press of a button we could do the following</p>
+</span></span></code></pre></div><p>The task can also be canceled at any point in time by calling the cancel(boolean) method. This will execute the <em>onCancelled()</em> methode. It is always a good idea to override this methode</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">onCancelled</span> () {
+</span></span><span style="display:flex;"><span>	Log.e(tag, <span style="color:#e6db74">&#34;API call was cancelled&#34;</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>We can call make this task execute from the UI thread by using an object of this class and calling it’s <em>execute()</em> method. To make a network call on the press of a button we could do the following</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">val</span> fetchButton: Button = findViewById(R.id.mangadexfetch)  
 </span></span><span style="display:flex;"><span>fetchButton.setOnClickListener {  
-</span></span><span style="display:flex;"><span>  ApiCall().execute(<span style="color:#e6db74">&#34;manga&#34;</span>)  
+</span></span><span style="display:flex;"><span>  	ApiCall().execute(<span style="color:#e6db74">&#34;manga&#34;</span>)  
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>This passes the argument “manga” into the AsyncTask and keeps it functioning on another thread.</p>
 <h2 id="cautions">Cautions</h2>
@@ -330,6 +336,23 @@ A program running on a single thread performs its tasks synchronously - meaning 
 <li>
 <p><strong>Task can be executed only once.</strong></p>
 </li>
+</ol>
+<h2 id="errors-to-expect">Errors to Expect</h2>
+<ol>
+<li>If the network connection cannot be established, a runtime exception  is thrown</li>
+</ol>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span>AndroidRuntime: FATAL EXCEPTION: AsyncTask <span style="color:#960050;background-color:#1e0010">#</span><span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>Process: com.tsunderead.kotlin_api, PID: <span style="color:#ae81ff">8732</span>
+</span></span></code></pre></div><blockquote>
+<p>This can be due to a wrong api URL or a weak internet</p>
+</blockquote>
+<p>Any Error critical error calls the onCancelled() methode. It is a good point to debug network call errors</p>
+<h2 id="referenes">Referenes</h2>
+<ol>
+<li><a href="https://youtu.be/zHGgSd1wvxY">AsyncTask theory</a></li>
+<li><a href="https://youtu.be/EThkglxLxSM">AsyncTask implementation</a></li>
+<li><a href="https://developer.android.com/reference/kotlin/android/os/AsyncTask">AsyncTask documentation</a></li>
+<li><a href="https://developer.android.com/reference/kotlin/java/net/HttpURLConnection">HttpURLConnection documentation</a></li>
 </ol>
 
     </div>
@@ -359,6 +382,8 @@ A program running on a single thread performs its tasks synchronously - meaning 
     <li><a href="#declaration">Declaration</a></li>
     <li><a href="#making-a-network-call">Making a network call</a></li>
     <li><a href="#cautions">Cautions</a></li>
+    <li><a href="#errors-to-expect">Errors to Expect</a></li>
+    <li><a href="#referenes">Referenes</a></li>
   </ul>
 </nav>
     </div>
