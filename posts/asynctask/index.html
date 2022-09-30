@@ -16,8 +16,8 @@
   <meta name="robots" content="all,follow">
   <meta name="googlebot" content="index,follow,snippet,archive">
   <meta property="og:title" content="Asynctask" />
-<meta property="og:description" content="AsyncTask This tutorial on AsyncTask is for the kotlin programming language. It can easily be adapted for the java programming language
-A program running on a single thread performs its tasks synchronously - meaning it waits till one task is complete till starting with another. On an android application UI runs on the main thread. The rendering of UI takes place in microsecond range. So for tasks like network calls that take significantly more time (in the millisecond range), the UI thread would be held up while the other task is finished if both were run on the main thread." />
+<meta property="og:description" content="AsyncTask This tutorial on AsyncTask is for the kotlin programming language. It can easily be adapted for the java programming language All source codes can be found in the GIt Repositroy linked
+A program running on a single thread performs its tasks synchronously - meaning it waits till one task is complete till starting with another. On an android application UI runs on the main thread. The rendering of UI takes place in microsecond range." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://vk1cd314.github.io/posts/asynctask/" /><meta property="article:section" content="posts" />
 <meta property="article:published_time" content="2022-09-10T20:23:16+06:00" />
@@ -26,8 +26,8 @@ A program running on a single thread performs its tasks synchronously - meaning 
 
   <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Asynctask"/>
-<meta name="twitter:description" content="AsyncTask This tutorial on AsyncTask is for the kotlin programming language. It can easily be adapted for the java programming language
-A program running on a single thread performs its tasks synchronously - meaning it waits till one task is complete till starting with another. On an android application UI runs on the main thread. The rendering of UI takes place in microsecond range. So for tasks like network calls that take significantly more time (in the millisecond range), the UI thread would be held up while the other task is finished if both were run on the main thread."/>
+<meta name="twitter:description" content="AsyncTask This tutorial on AsyncTask is for the kotlin programming language. It can easily be adapted for the java programming language All source codes can be found in the GIt Repositroy linked
+A program running on a single thread performs its tasks synchronously - meaning it waits till one task is complete till starting with another. On an android application UI runs on the main thread. The rendering of UI takes place in microsecond range."/>
 
   
   
@@ -131,7 +131,7 @@ A program running on a single thread performs its tasks synchronously - meaning 
     </a>
   </li>
   <li>
-    <a class="icon" href="http://www.tumblr.com/share/link?url=https%3a%2f%2fvk1cd314.github.io%2fposts%2fasynctask%2f&name=Asynctask&description=AsyncTask%20This%20tutorial%20on%20AsyncTask%20is%20for%20the%20kotlin%20programming%20language.%20It%20can%20easily%20be%20adapted%20for%20the%20java%20programming%20language%0aA%20program%20running%20on%20a%20single%20thread%20performs%20its%20tasks%20synchronously%20-%20meaning%20it%20waits%20till%20one%20task%20is%20complete%20till%20starting%20with%20another.%20On%20an%20android%20application%20UI%20runs%20on%20the%20main%20thread.%20The%20rendering%20of%20UI%20takes%20place%20in%20microsecond%20range.%20So%20for%20tasks%20like%20network%20calls%20that%20take%20significantly%20more%20time%20%28in%20the%20millisecond%20range%29%2c%20the%20UI%20thread%20would%20be%20held%20up%20while%20the%20other%20task%20is%20finished%20if%20both%20were%20run%20on%20the%20main%20thread." aria-label="Tumblr">
+    <a class="icon" href="http://www.tumblr.com/share/link?url=https%3a%2f%2fvk1cd314.github.io%2fposts%2fasynctask%2f&name=Asynctask&description=AsyncTask%20This%20tutorial%20on%20AsyncTask%20is%20for%20the%20kotlin%20programming%20language.%20It%20can%20easily%20be%20adapted%20for%20the%20java%20programming%20language%20All%20source%20codes%20can%20be%20found%20in%20the%20GIt%20Repositroy%20linked%0aA%20program%20running%20on%20a%20single%20thread%20performs%20its%20tasks%20synchronously%20-%20meaning%20it%20waits%20till%20one%20task%20is%20complete%20till%20starting%20with%20another.%20On%20an%20android%20application%20UI%20runs%20on%20the%20main%20thread.%20The%20rendering%20of%20UI%20takes%20place%20in%20microsecond%20range." aria-label="Tumblr">
       <i class="fab fa-tumblr " aria-hidden="true"></i>
     </a>
   </li>
@@ -149,7 +149,7 @@ A program running on a single thread performs its tasks synchronously - meaning 
   <ul>
     <li><a href="#declaration">Declaration</a></li>
     <li><a href="#making-a-network-call">Making a network call</a></li>
-    <li><a href="#communicatiung-with-other-threads">Communicatiung with other threads</a></li>
+    <li><a href="#communicating-with-other-threads">Communicating with other threads</a></li>
     <li><a href="#cautions">Cautions</a></li>
     <li><a href="#errors-to-expect">Errors to Expect</a></li>
     <li><a href="#referenes">Referenes</a></li>
@@ -186,7 +186,8 @@ A program running on a single thread performs its tasks synchronously - meaning 
     <div class="content" itemprop="articleBody">
       <h1 id="asynctask">AsyncTask</h1>
 <blockquote>
-<p>This tutorial on AsyncTask is for the kotlin programming language. It can easily be adapted for the java programming language</p>
+<p>This tutorial on AsyncTask is for the kotlin programming language. It can easily be adapted for the java programming language
+All source codes can be found in the GIt Repositroy linked</p>
 </blockquote>
 <p>A program running on a single thread performs its tasks synchronously - meaning it waits till one task is complete till starting with another. On an android application UI runs on the main thread. The rendering of UI takes place in microsecond range. So for tasks like network calls that take significantly more time (in the millisecond range), the UI thread would be held up while the other task is finished if both were run on the main thread.</p>
 <p>This is where AsyncTask is needed. It hands the secondary task to another thread and waits for a callback upon completion of the task.</p>
@@ -327,12 +328,12 @@ A program running on a single thread performs its tasks synchronously - meaning 
 </span></span><span style="display:flex;"><span>  	ApiCall().execute(<span style="color:#e6db74">&#34;manga&#34;</span>)  
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>This passes the argument “manga” into the AsyncTask and keeps it functioning on another thread.</p>
-<h2 id="communicatiung-with-other-threads">Communicatiung with other threads</h2>
+<h2 id="communicating-with-other-threads">Communicating with other threads</h2>
 <blockquote>
 <p>This part of the tutorial is helpful only if you need the AsyncTask responce elsewhere.</p>
 </blockquote>
 <p>After or during the network call, the thread from which it is called might need to communicate with the AsyncTask thread. Case in point - we want our users to see the data that we fetched from the api in the main thread. To allow the asyncTask to communitate with the main thread, we pass the parent object into the AsyncTask object. We need an interface to help with that.</p>
-<p>Create a generic interface <em>NetworkCalled</em> contains the methodes <em>onNetworkCallSuccess(Result)</em> and <em>onNetworkCallFail()</em>.</p>
+<p>Create a generic interface <em>NetworkCaller</em> contains the methodes <em>onNetworkCallSuccess(Result)</em> and <em>onNetworkCallFail()</em>.</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">interface</span> <span style="color:#a6e22e">NetworkCaller</span>&lt;T&gt; {
 </span></span><span style="display:flex;"><span>    void onNetworkCallSuccess(T t);
 </span></span><span style="display:flex;"><span>    void onNetworkCallFail();
@@ -399,7 +400,8 @@ Verify the URL and check internet connection</p>
 <li><a href="https://developer.android.com/reference/kotlin/java/net/HttpURLConnection">HttpURLConnection documentation</a></li>
 </ol>
 <h2 id="git-repository">Git Repository</h2>
-<p><a href="https://github.com/master-da/kotlin-api">https://github.com/master-da/kotlin-api</a></p>
+<p>All source codes can be found on this repository
+<a href="https://github.com/master-da/kotlin-api">https://github.com/master-da/kotlin-api</a></p>
 
     </div>
   </article>
@@ -427,7 +429,7 @@ Verify the URL and check internet connection</p>
   <ul>
     <li><a href="#declaration">Declaration</a></li>
     <li><a href="#making-a-network-call">Making a network call</a></li>
-    <li><a href="#communicatiung-with-other-threads">Communicatiung with other threads</a></li>
+    <li><a href="#communicating-with-other-threads">Communicating with other threads</a></li>
     <li><a href="#cautions">Cautions</a></li>
     <li><a href="#errors-to-expect">Errors to Expect</a></li>
     <li><a href="#referenes">Referenes</a></li>
@@ -481,7 +483,7 @@ Verify the URL and check internet connection</p>
     </a>
   </li>
   <li>
-    <a class="icon" href="http://www.tumblr.com/share/link?url=https%3a%2f%2fvk1cd314.github.io%2fposts%2fasynctask%2f&name=Asynctask&description=AsyncTask%20This%20tutorial%20on%20AsyncTask%20is%20for%20the%20kotlin%20programming%20language.%20It%20can%20easily%20be%20adapted%20for%20the%20java%20programming%20language%0aA%20program%20running%20on%20a%20single%20thread%20performs%20its%20tasks%20synchronously%20-%20meaning%20it%20waits%20till%20one%20task%20is%20complete%20till%20starting%20with%20another.%20On%20an%20android%20application%20UI%20runs%20on%20the%20main%20thread.%20The%20rendering%20of%20UI%20takes%20place%20in%20microsecond%20range.%20So%20for%20tasks%20like%20network%20calls%20that%20take%20significantly%20more%20time%20%28in%20the%20millisecond%20range%29%2c%20the%20UI%20thread%20would%20be%20held%20up%20while%20the%20other%20task%20is%20finished%20if%20both%20were%20run%20on%20the%20main%20thread." aria-label="Tumblr">
+    <a class="icon" href="http://www.tumblr.com/share/link?url=https%3a%2f%2fvk1cd314.github.io%2fposts%2fasynctask%2f&name=Asynctask&description=AsyncTask%20This%20tutorial%20on%20AsyncTask%20is%20for%20the%20kotlin%20programming%20language.%20It%20can%20easily%20be%20adapted%20for%20the%20java%20programming%20language%20All%20source%20codes%20can%20be%20found%20in%20the%20GIt%20Repositroy%20linked%0aA%20program%20running%20on%20a%20single%20thread%20performs%20its%20tasks%20synchronously%20-%20meaning%20it%20waits%20till%20one%20task%20is%20complete%20till%20starting%20with%20another.%20On%20an%20android%20application%20UI%20runs%20on%20the%20main%20thread.%20The%20rendering%20of%20UI%20takes%20place%20in%20microsecond%20range." aria-label="Tumblr">
       <i class="fab fa-tumblr fa-lg" aria-hidden="true"></i>
     </a>
   </li>
