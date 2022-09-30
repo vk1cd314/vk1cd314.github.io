@@ -149,6 +149,7 @@ A program running on a single thread performs its tasks synchronously - meaning 
   <ul>
     <li><a href="#declaration">Declaration</a></li>
     <li><a href="#making-a-network-call">Making a network call</a></li>
+    <li><a href="#communicatiung-with-other-threads">Communicatiung with other threads</a></li>
     <li><a href="#cautions">Cautions</a></li>
     <li><a href="#errors-to-expect">Errors to Expect</a></li>
     <li><a href="#referenes">Referenes</a></li>
@@ -280,7 +281,7 @@ A program running on a single thread performs its tasks synchronously - meaning 
 </span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">val</span> output = StringBuilder() 
 </span></span><span style="display:flex;"><span>	
 </span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">var</span> line: String?;  
-</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">while</span>(reader.readLine().also { line = <span style="color:#66d9ef">it</span>} <span style="color:#f92672">!=</span> <span style="color:#66d9ef">null</span>) {  <span style="color:#75715e">// reader sends api responce as input stream
+</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">while</span>(reader.readLine().also { line = <span style="color:#66d9ef">it</span> } <span style="color:#f92672">!=</span> <span style="color:#66d9ef">null</span>) {  <span style="color:#75715e">// reader sends api responce as input stream
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	      output.append(line)  
 </span></span><span style="display:flex;"><span>	  }  
 </span></span><span style="display:flex;"><span>	
@@ -305,7 +306,7 @@ A program running on a single thread performs its tasks synchronously - meaning 
 </span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">val</span> output = StringBuilder()  
 </span></span><span style="display:flex;"><span>	
 </span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">var</span> line: String?;  
-</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">while</span>(reader.readLine().also { line = <span style="color:#66d9ef">it</span>} <span style="color:#f92672">!=</span> <span style="color:#66d9ef">null</span>) {  
+</span></span><span style="display:flex;"><span>	  <span style="color:#66d9ef">while</span>(reader.readLine().also { line = <span style="color:#66d9ef">it</span> } <span style="color:#f92672">!=</span> <span style="color:#66d9ef">null</span>) {  
 </span></span><span style="display:flex;"><span>	      publishProgress() <span style="color:#75715e">// PROGRESS UPDATE  
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	      output.append(line)  
 </span></span><span style="display:flex;"><span>	  }  
@@ -314,7 +315,7 @@ A program running on a single thread performs its tasks synchronously - meaning 
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>Every time we call the <em>publishProgress()</em> method, the task calls the <em>onProgressUpdate</em> method. To every time we receive a new line we can update the user on the progress</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">onProgressUpdate</span>(<span style="color:#66d9ef">vararg</span> values: Void?) {  
-</span></span><span style="display:flex;"><span>  Log.i(tag, <span style="color:#e6db74">&#34;New Line Received&#34;</span>)  
+</span></span><span style="display:flex;"><span>  	Log.i(tag, <span style="color:#e6db74">&#34;New Line Received&#34;</span>)  
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>The task can also be canceled at any point in time by calling the cancel(boolean) method. This will execute the <em>onCancelled()</em> methode. It is always a good idea to override this methode</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">onCancelled</span> () {
@@ -326,26 +327,68 @@ A program running on a single thread performs its tasks synchronously - meaning 
 </span></span><span style="display:flex;"><span>  	ApiCall().execute(<span style="color:#e6db74">&#34;manga&#34;</span>)  
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>This passes the argument “manga” into the AsyncTask and keeps it functioning on another thread.</p>
-<h2 id="cautions">Cautions</h2>
+<h2 id="communicatiung-with-other-threads">Communicatiung with other threads</h2>
+<blockquote>
+<p>This part of the tutorial is helpful only if you need the AsyncTask responce elsewhere.</p>
+</blockquote>
+<p>After or during the network call, the thread from which it is called might need to communicate with the AsyncTask thread. Case in point - we want our users to see the data that we fetched from the api in the main thread. To allow the asyncTask to communitate with the main thread, we pass the parent object into the AsyncTask object. We need an interface to help with that.</p>
+<p>Create a generic interface <em>NetworkCalled</em> contains the methodes <em>onNetworkCallSuccess(Result)</em> and <em>onNetworkCallFail()</em>.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">interface</span> <span style="color:#a6e22e">NetworkCaller</span>&lt;T&gt; {
+</span></span><span style="display:flex;"><span>    void onNetworkCallSuccess(T t);
+</span></span><span style="display:flex;"><span>    void onNetworkCallFail();
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>The caller object must override this interface and pass itself onto the AsyncTask object that is creates to allow the AsyncTask to execute these methodes when they need. Modify the caller activity to override the <em>NetworkCaller</em> interface. Now we can pass the caller object into the AsyncTask.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">MainActivity</span> : AppCompatActivity(), NetworkCaller&lt;JSONObject&gt; { <span style="color:#75715e">// implenets the NetworkCaller interface with the expected result type *JSONObject*
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">val</span> tag = <span style="color:#e6db74">&#34;Main&#34;</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">onCreate</span>(savedInstanceState: Bundle?) {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">super</span>.onCreate(savedInstanceState)
+</span></span><span style="display:flex;"><span>        setContentView(R.layout.activity_main)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">val</span> apicallbutton = findViewById&lt;Button&gt;(R.id.presstoinvoteapi);
+</span></span><span style="display:flex;"><span>        apicallbutton.setOnClickListener {
+</span></span><span style="display:flex;"><span>            ApiCall(<span style="color:#66d9ef">this</span>).execute(<span style="color:#e6db74">&#34;manga&#34;</span>) <span style="color:#75715e">// passing *this* into ApiCall object
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// Overrides NetworkCaller methodes
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">onNetworkCallSuccess</span>(result: JSONObject?) {
+</span></span><span style="display:flex;"><span>        Log.i(tag, result.toString())
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">onNetworkCallFail</span>() {
+</span></span><span style="display:flex;"><span>        Log.e(tag, <span style="color:#e6db74">&#34;Network Call Failed&#34;</span>)
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>The ApiCall initialization now looks like <code>class ApiCall(val parent: NetworkCaller&lt;JSONObject&gt;): AsyncTask&lt;String, Void, JSONObject&gt;()</code> - Accepting a parent object that implements NetworkCaller.  We can now handle post_execute and network cancellations differently</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#75715e">// inside the ApiCall class
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">onPostExecute</span>(result: JSONObject?) {
+</span></span><span style="display:flex;"><span>	parent.onNetworkCallSuccess(result)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">onCancelled</span> () {
+</span></span><span style="display:flex;"><span>	parent.onNetworkCallFail()
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="cautions">Cautions</h2>
 <ol>
 <li>
 <p><strong>The methods <em>onPreExecute(), onPostExecute(Result), doInBackground(Params&hellip;) and onProgressUpdate(Progress&hellip;)</em> SHOULD NEVER BE CALLED MANUALLY.  Use only the <em>execute()</em> method to start the task.</strong> </p>
 </li>
 <li>
-<p><strong>Task can be created and executed on the UI thread only.</strong></p>
+<p><strong>Tasks can be created and executed on the UI thread only.</strong></p>
 </li>
 <li>
-<p><strong>Task can be executed only once.</strong></p>
+<p><strong>A Task can be executed only once.</strong></p>
 </li>
 </ol>
 <h2 id="errors-to-expect">Errors to Expect</h2>
-<ol>
-<li>If the network connection cannot be established, a runtime exception  is thrown</li>
-</ol>
+<p>If the network connection cannot be established, a runtime exception  is thrown</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>AndroidRuntime: FATAL EXCEPTION: AsyncTask <span style="color:#75715e">#1</span>
 </span></span><span style="display:flex;"><span>Process: com.tsunderead.kotlin_api, PID: <span style="color:#ae81ff">8732</span>
 </span></span></code></pre></div><blockquote>
-<p>This can be due to a wrong api URL or a weak internet</p>
+<p>This can be due to a wrong api URL or a weak internet
+Verify the URL and check internet connection</p>
 </blockquote>
 <p>Any critical error calls the onCancelled() method. Overriding this method is a good practice to debug network call errors.</p>
 <h2 id="referenes">Referenes</h2>
@@ -384,6 +427,7 @@ A program running on a single thread performs its tasks synchronously - meaning 
   <ul>
     <li><a href="#declaration">Declaration</a></li>
     <li><a href="#making-a-network-call">Making a network call</a></li>
+    <li><a href="#communicatiung-with-other-threads">Communicatiung with other threads</a></li>
     <li><a href="#cautions">Cautions</a></li>
     <li><a href="#errors-to-expect">Errors to Expect</a></li>
     <li><a href="#referenes">Referenes</a></li>
