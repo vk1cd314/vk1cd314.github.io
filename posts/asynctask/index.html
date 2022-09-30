@@ -16,7 +16,7 @@
   <meta name="robots" content="all,follow">
   <meta name="googlebot" content="index,follow,snippet,archive">
   <meta property="og:title" content="Asynctask" />
-<meta property="og:description" content="AsyncTask This tutorial on AsyncTask is for the kotlin programming language. It can easily be adapted for the java programming language All source codes can be found in the GIt Repositroy linked
+<meta property="og:description" content="AsyncTask This tutorial on AsyncTask is for the kotlin programming language. It can easily be adapted for the java programming language All source codes can be found in the Git Repositroy linked
 A program running on a single thread performs its tasks synchronously - meaning it waits till one task is complete till starting with another. On an android application UI runs on the main thread. The rendering of UI takes place in microsecond range." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://vk1cd314.github.io/posts/asynctask/" /><meta property="article:section" content="posts" />
@@ -26,7 +26,7 @@ A program running on a single thread performs its tasks synchronously - meaning 
 
   <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Asynctask"/>
-<meta name="twitter:description" content="AsyncTask This tutorial on AsyncTask is for the kotlin programming language. It can easily be adapted for the java programming language All source codes can be found in the GIt Repositroy linked
+<meta name="twitter:description" content="AsyncTask This tutorial on AsyncTask is for the kotlin programming language. It can easily be adapted for the java programming language All source codes can be found in the Git Repositroy linked
 A program running on a single thread performs its tasks synchronously - meaning it waits till one task is complete till starting with another. On an android application UI runs on the main thread. The rendering of UI takes place in microsecond range."/>
 
   
@@ -131,7 +131,7 @@ A program running on a single thread performs its tasks synchronously - meaning 
     </a>
   </li>
   <li>
-    <a class="icon" href="http://www.tumblr.com/share/link?url=https%3a%2f%2fvk1cd314.github.io%2fposts%2fasynctask%2f&name=Asynctask&description=AsyncTask%20This%20tutorial%20on%20AsyncTask%20is%20for%20the%20kotlin%20programming%20language.%20It%20can%20easily%20be%20adapted%20for%20the%20java%20programming%20language%20All%20source%20codes%20can%20be%20found%20in%20the%20GIt%20Repositroy%20linked%0aA%20program%20running%20on%20a%20single%20thread%20performs%20its%20tasks%20synchronously%20-%20meaning%20it%20waits%20till%20one%20task%20is%20complete%20till%20starting%20with%20another.%20On%20an%20android%20application%20UI%20runs%20on%20the%20main%20thread.%20The%20rendering%20of%20UI%20takes%20place%20in%20microsecond%20range." aria-label="Tumblr">
+    <a class="icon" href="http://www.tumblr.com/share/link?url=https%3a%2f%2fvk1cd314.github.io%2fposts%2fasynctask%2f&name=Asynctask&description=AsyncTask%20This%20tutorial%20on%20AsyncTask%20is%20for%20the%20kotlin%20programming%20language.%20It%20can%20easily%20be%20adapted%20for%20the%20java%20programming%20language%20All%20source%20codes%20can%20be%20found%20in%20the%20Git%20Repositroy%20linked%0aA%20program%20running%20on%20a%20single%20thread%20performs%20its%20tasks%20synchronously%20-%20meaning%20it%20waits%20till%20one%20task%20is%20complete%20till%20starting%20with%20another.%20On%20an%20android%20application%20UI%20runs%20on%20the%20main%20thread.%20The%20rendering%20of%20UI%20takes%20place%20in%20microsecond%20range." aria-label="Tumblr">
       <i class="fab fa-tumblr " aria-hidden="true"></i>
     </a>
   </li>
@@ -150,6 +150,8 @@ A program running on a single thread performs its tasks synchronously - meaning 
     <li><a href="#declaration">Declaration</a></li>
     <li><a href="#making-a-network-call">Making a network call</a></li>
     <li><a href="#communicating-with-other-threads">Communicating with other threads</a></li>
+    <li><a href="#welcome-page">Welcome Page</a></li>
+    <li><a href="#network-call-page">Network Call Page</a></li>
     <li><a href="#cautions">Cautions</a></li>
     <li><a href="#errors-to-expect">Errors to Expect</a></li>
     <li><a href="#referenes">Referenes</a></li>
@@ -187,7 +189,7 @@ A program running on a single thread performs its tasks synchronously - meaning 
       <h1 id="asynctask">AsyncTask</h1>
 <blockquote>
 <p>This tutorial on AsyncTask is for the kotlin programming language. It can easily be adapted for the java programming language
-All source codes can be found in the GIt Repositroy linked</p>
+All source codes can be found in the Git Repositroy linked</p>
 </blockquote>
 <p>A program running on a single thread performs its tasks synchronously - meaning it waits till one task is complete till starting with another. On an android application UI runs on the main thread. The rendering of UI takes place in microsecond range. So for tasks like network calls that take significantly more time (in the millisecond range), the UI thread would be held up while the other task is finished if both were run on the main thread.</p>
 <p>This is where AsyncTask is needed. It hands the secondary task to another thread and waits for a callback upon completion of the task.</p>
@@ -339,7 +341,7 @@ All source codes can be found in the GIt Repositroy linked</p>
 </span></span><span style="display:flex;"><span>    void onNetworkCallFail();
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>The caller object must override this interface and pass itself onto the AsyncTask object that is creates to allow the AsyncTask to execute these methodes when they need. Modify the caller activity to override the <em>NetworkCaller</em> interface. Now we can pass the caller object into the AsyncTask.</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">MainActivity</span> : AppCompatActivity(), NetworkCaller&lt;JSONObject&gt; { <span style="color:#75715e">// implenets the NetworkCaller interface with the expected result type *JSONObject*
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-kotlin" data-lang="kotlin"><span style="display:flex;"><span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">AsyncTaskActivity</span> : AppCompatActivity(), NetworkCaller&lt;JSONObject&gt; { <span style="color:#75715e">// implenets the NetworkCaller interface with the expected result type *JSONObject*
 </span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
 </span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">val</span> tag = <span style="color:#e6db74">&#34;Main&#34;</span>;
 </span></span><span style="display:flex;"><span>
@@ -371,7 +373,11 @@ All source codes can be found in the GIt Repositroy linked</p>
 </span></span><span style="display:flex;"><span><span style="color:#66d9ef">override</span> <span style="color:#66d9ef">fun</span> <span style="color:#a6e22e">onCancelled</span> () {
 </span></span><span style="display:flex;"><span>	parent.onNetworkCallFail()
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre></div><h2 id="cautions">Cautions</h2>
+</span></span></code></pre></div><h2 id="welcome-page">Welcome Page</h2>
+<p><img src="AsyncTask1.png" alt="Page 1"></p>
+<h2 id="network-call-page">Network Call Page</h2>
+<p><img src="AsyncTask2.png" alt="Page 2"></p>
+<h2 id="cautions">Cautions</h2>
 <ol>
 <li>
 <p><strong>The methods <em>onPreExecute(), onPostExecute(Result), doInBackground(Params&hellip;) and onProgressUpdate(Progress&hellip;)</em> SHOULD NEVER BE CALLED MANUALLY.  Use only the <em>execute()</em> method to start the task.</strong> </p>
@@ -430,6 +436,8 @@ Verify the URL and check internet connection</p>
     <li><a href="#declaration">Declaration</a></li>
     <li><a href="#making-a-network-call">Making a network call</a></li>
     <li><a href="#communicating-with-other-threads">Communicating with other threads</a></li>
+    <li><a href="#welcome-page">Welcome Page</a></li>
+    <li><a href="#network-call-page">Network Call Page</a></li>
     <li><a href="#cautions">Cautions</a></li>
     <li><a href="#errors-to-expect">Errors to Expect</a></li>
     <li><a href="#referenes">Referenes</a></li>
@@ -483,7 +491,7 @@ Verify the URL and check internet connection</p>
     </a>
   </li>
   <li>
-    <a class="icon" href="http://www.tumblr.com/share/link?url=https%3a%2f%2fvk1cd314.github.io%2fposts%2fasynctask%2f&name=Asynctask&description=AsyncTask%20This%20tutorial%20on%20AsyncTask%20is%20for%20the%20kotlin%20programming%20language.%20It%20can%20easily%20be%20adapted%20for%20the%20java%20programming%20language%20All%20source%20codes%20can%20be%20found%20in%20the%20GIt%20Repositroy%20linked%0aA%20program%20running%20on%20a%20single%20thread%20performs%20its%20tasks%20synchronously%20-%20meaning%20it%20waits%20till%20one%20task%20is%20complete%20till%20starting%20with%20another.%20On%20an%20android%20application%20UI%20runs%20on%20the%20main%20thread.%20The%20rendering%20of%20UI%20takes%20place%20in%20microsecond%20range." aria-label="Tumblr">
+    <a class="icon" href="http://www.tumblr.com/share/link?url=https%3a%2f%2fvk1cd314.github.io%2fposts%2fasynctask%2f&name=Asynctask&description=AsyncTask%20This%20tutorial%20on%20AsyncTask%20is%20for%20the%20kotlin%20programming%20language.%20It%20can%20easily%20be%20adapted%20for%20the%20java%20programming%20language%20All%20source%20codes%20can%20be%20found%20in%20the%20Git%20Repositroy%20linked%0aA%20program%20running%20on%20a%20single%20thread%20performs%20its%20tasks%20synchronously%20-%20meaning%20it%20waits%20till%20one%20task%20is%20complete%20till%20starting%20with%20another.%20On%20an%20android%20application%20UI%20runs%20on%20the%20main%20thread.%20The%20rendering%20of%20UI%20takes%20place%20in%20microsecond%20range." aria-label="Tumblr">
       <i class="fab fa-tumblr fa-lg" aria-hidden="true"></i>
     </a>
   </li>
