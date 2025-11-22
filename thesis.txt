@@ -1,0 +1,2513 @@
+UNIVERSITY OF DHAKA
+Learning Sparsification and
+Partitioning for Generalizing
+Routing Problems on Larger
+Instances
+by
+Exam Roll: 2324009
+Registration No: 2019-617-798, Session: 2019-20
+Exam Roll: 2324039
+Registration No: 2019-717-805, Session: 2019-20
+Bachelor of Science
+
+Declaration Form
+University of Dhaka
+We, M Muztoba Hasan Sinha and Bhola Nath Das, hereby declare that the re-
+sults of our thorough investigation, performed under the supervision of Md Mahmudur
+Rahman, Assistant Professor at the Department of Computer Science and Engineering,
+University of Dhaka, are embodied in this project. We also declare that no part of this
+project has been or is being submitted elsewhere for the award of any degree or diploma.
+M Muztoba Hasan Sinha Bhola Nath Das
+Department of Computer Science Department of Computer Science
+and Engineering, and Engineering,
+University of Dhaka. University of Dhaka.
+Md Mahmudur Rahman
+Assistant Professor
+Department of Computer Science and Engineering
+University of Dhaka
+Supervisor
+i
+
+- Randal Munroe (xkcd)
+
+UNIVERSITY OF DHAKA
+Abstract
+The Traveling Salesman Problem stands as one of the most exten-
+sively studied NP-hard problems, with a rich history of research employing
+exact algorithms, heuristics, approximation methods, and, more recently,
+neural network approaches. Contemporary state-of-the-art neural meth-
+ods have demonstrated the capability to solve large-scale TSP instances
+rapidly, achieving solutions with minimal optimality gaps. However, a sig-
+nificant limitation of existing approaches is their focus on fully connected
+graph scenarios — a condition that is rarely met in practical applica-
+tions. In this work, we introduce a novel relaxation of the TSP through
+learned sparsification. Our proposed LES algorithm reduces graph density
+by selectively preserving critical connectivity, thereby aligning the prob-
+lem formulation more closely with real-world conditions. Additionally, we
+present a partitioning strategy that decomposes the overall problem into
+smaller subproblems, which can be solved using current SOTA solvers.
+This divide-and-conquer framework not only enhances computational effi-
+ciency but also broadens the applicability of advanced TSP solvers to more
+realistic, sparse graph instances.
+
+Acknowledgements
+We are extremely grateful to the people involved and the relentless
+pace of progress in the Neural Combinatorial Optimization niche for keep-
+ing us on our toes at all times.
+iv
+
+Contents
+Declaration Form i
+Abstract iii
+Acknowledgements iv
+List of Figures viii
+List of Tables ix
+1 Introduction 1
+1.1 Challenges . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 2
+1.2 Motivations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+1.3 Objectives . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 4
+1.4 Contributions . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 5
+1.5 Organization . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 5
+2 Related Works 7
+2.1 Travelling Salesman Problem . . . . . . . . . . . . . . . . . . . . . . . . . 8
+2.2 An Overview of TSP literature . . . . . . . . . . . . . . . . . . . . . . . . 9
+2.2.1 Traditional Solvers . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+2.2.2 Neural Methods . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+2.2.2.1 Learn-to-Construct(L2C) . . . . . . . . . . . . . . . . . 11
+2.2.2.2 Learn-to-Solve(L2S) . . . . . . . . . . . . . . . . . . . . 13
+2.2.2.3 Learn-to-Predict(L2P) . . . . . . . . . . . . . . . . . . . 13
+2.2.2.4 Scaling Neural Methods . . . . . . . . . . . . . . . . . . 14
+2.3 Background Study . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17
+2.3.1 Traditional Approaches to Solving TSP . . . . . . . . . . . . . . . 17
+2.3.1.1 Exact Methods . . . . . . . . . . . . . . . . . . . . . . . 17
+2.3.1.2 Heuristic and Metaheuristic Algorithms . . . . . . . . . 19
+2.3.2 Graph Sparsification . . . . . . . . . . . . . . . . . . . . . . . . . 20
+2.3.2.1 Exact and Probabilistic Sparsification . . . . . . . . . . 20
+2.3.2.2 Limitations of Traditional Sparsification . . . . . . . . . 21
+2.3.2.3 Learning-Based Sparsification Approaches . . . . . . . . 21
+2.3.2.4 Importance of Sparsification for Graph Neural Networks
+and Transformers . . . . . . . . . . . . . . . . . . . . . . 22
+v
+
+Contents vi
+2.3.2.5 Advanced and Ensemble Sparsification Methods . . . . . 23
+2.3.2.6 Implications and Limitations of Learning-Based Sparsifi-
+cation . . . . . . . . . . . . . . . . . . . . . . . . . . . . 24
+2.3.3 Graph Parititioning . . . . . . . . . . . . . . . . . . . . . . . . . . 24
+2.3.4 Machine Learning in Combinatorial Optimization . . . . . . . . . 25
+2.3.4.1 Combinatorial Optimization . . . . . . . . . . . . . . . . 26
+2.3.4.2 Machine Learning Approaches . . . . . . . . . . . . . . . 26
+2.3.4.3 Reinforcement Learning . . . . . . . . . . . . . . . . . . 27
+2.3.4.4 Graph Neural Networks . . . . . . . . . . . . . . . . . . 28
+2.3.4.5 Benchmarking and Performance of GNNs . . . . . . . . 30
+2.4 Problems with Existing Systems . . . . . . . . . . . . . . . . . . . . . . . 31
+3 Proposed Methodologies 34
+3.1 LES: Learnt Edge Sparsification Algorithm . . . . . . . . . . . . . . . . . 35
+3.1.1 Edge Embedding Computation via Residual Gated GCN . . . . . 35
+3.1.2 Edge Classification via MLP with Custom Loss . . . . . . . . . . 36
+3.1.3 Sparsification via Thresholding . . . . . . . . . . . . . . . . . . . 37
+3.1.4 Avoiding Over-Reliance on Nearest Neighbor Heuristics . . . . . . 38
+3.2 Optimal Partitioning . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 39
+3.2.1 Exact Partitioning . . . . . . . . . . . . . . . . . . . . . . . . . . 40
+3.2.1.1 Finding Pseudo-bridges . . . . . . . . . . . . . . . . . . 41
+3.2.2 Integration of LES with Optimal Partitioning through Pseudo-Bridges 41
+3.2.3 Proposed Algorithm . . . . . . . . . . . . . . . . . . . . . . . . . 42
+3.2.4 Explanation of the Algorithms . . . . . . . . . . . . . . . . . . . . 44
+3.2.4.1 OptimalPartition . . . . . . . . . . . . . . . . . . . . . . 44
+3.2.4.2 FindPseudoBridges . . . . . . . . . . . . . . . . . . . . . 44
+3.2.4.3 RemovePseudoBridges . . . . . . . . . . . . . . . . . . . 44
+3.2.4.4 CombineSubSolutions . . . . . . . . . . . . . . . . . . . 45
+3.2.5 Complexity Analysis . . . . . . . . . . . . . . . . . . . . . . . . . 45
+3.3 Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 48
+4 Implementation 50
+4.1 Graph Representation and Rationale . . . . . . . . . . . . . . . . . . . . 50
+4.1.1 TSP Edge Emphasis . . . . . . . . . . . . . . . . . . . . . . . . . 50
+4.1.2 Feature Selection for edges . . . . . . . . . . . . . . . . . . . . . . 50
+4.1.3 Data Flow in GatedGCN Layers . . . . . . . . . . . . . . . . . . . 51
+4.2 Gated Mechanism . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 51
+4.2.1 Purpose of the Gate . . . . . . . . . . . . . . . . . . . . . . . . . 51
+4.2.2 Gating Computation . . . . . . . . . . . . . . . . . . . . . . . . . 52
+4.2.3 Edge Updates . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 52
+4.3 Edge-Level Classification . . . . . . . . . . . . . . . . . . . . . . . . . . . 52
+4.3.1 Label Encoding . . . . . . . . . . . . . . . . . . . . . . . . . . . . 52
+4.3.2 Final Output Layer . . . . . . . . . . . . . . . . . . . . . . . . . . 53
+4.3.3 Training Objective and Batching . . . . . . . . . . . . . . . . . . 53
+
+Contents vii
+4.4 Residual Connections and Regularization . . . . . . . . . . . . . . . . . . 53
+4.4.1 Skip Connections . . . . . . . . . . . . . . . . . . . . . . . . . . . 53
+4.4.2 Additional Regularization . . . . . . . . . . . . . . . . . . . . . . 54
+4.5 Overall Training Pipeline . . . . . . . . . . . . . . . . . . . . . . . . . . . 54
+4.5.1 Architecture Configuration . . . . . . . . . . . . . . . . . . . . . . 54
+4.5.2 Batching and Graph Processing . . . . . . . . . . . . . . . . . . . 55
+4.5.3 Performance Monitoring . . . . . . . . . . . . . . . . . . . . . . . 55
+4.6 Optimal Partitioning: pycuts . . . . . . . . . . . . . . . . . . . . . . . . 56
+4.6.1 Algorithm Workflow . . . . . . . . . . . . . . . . . . . . . . . . . 56
+4.6.1.1 Preprocessing . . . . . . . . . . . . . . . . . . . . . . . . 56
+4.6.1.2 Identifying 2-Edge Cuts . . . . . . . . . . . . . . . . . . 56
+4.6.1.3 Finding Bridges . . . . . . . . . . . . . . . . . . . . . . . 56
+4.6.1.4 Partitioning the Graph . . . . . . . . . . . . . . . . . . . 57
+4.6.1.5 Distributing Pseudobridges . . . . . . . . . . . . . . . . 57
+4.6.1.6 Reconstructing the Solution . . . . . . . . . . . . . . . . 57
+4.7 Additional Considerations . . . . . . . . . . . . . . . . . . . . . . . . . . 57
+5 Experimental Results 59
+5.1 Experimental Setup . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 59
+5.1.1 Dataset Generation and Benchmarking Protocol . . . . . . . . . . 59
+5.2 Evaluation Metrics . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 60
+5.3 Results and Comparative Analysis . . . . . . . . . . . . . . . . . . . . . . 60
+5.3.1 Sparsification Performance . . . . . . . . . . . . . . . . . . . . . . 60
+5.3.2 Comparison with State-of-the-Art Methods . . . . . . . . . . . . . 61
+5.3.3 Visual Results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 62
+5.3.4 Runtime Performance and Efficiency . . . . . . . . . . . . . . . . 62
+5.4 Discussion . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 63
+5.5 Conclusion . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 64
+6 Conclusions 65
+6.1 Research Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 65
+6.2 Future Work Plan . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 66
+Bibliography 68
+
+List of Figures
+2.1 2D-Euclidean TSP solution . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+2.2 Different Methods to Solve TSP . . . . . . . . . . . . . . . . . . . . . . . 10
+2.3 A generic L2C solver. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 12
+2.4 A generic L2P solver. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
+2.5 Example Where k-NN sparsification fails . . . . . . . . . . . . . . . . . . 21
+2.6 GREAT Layer Architecture . . . . . . . . . . . . . . . . . . . . . . . . . 22
+2.7 Sparsification speeding up inference . . . . . . . . . . . . . . . . . . . . . 23
+2.8 Partitioned Graph Solution . . . . . . . . . . . . . . . . . . . . . . . . . 25
+3.1 GatedGCN Layer . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 36
+3.2 LES GatedGCN Model . . . . . . . . . . . . . . . . . . . . . . . . . . . . 38
+3.3 How our Algorithm Works . . . . . . . . . . . . . . . . . . . . . . . . . . 39
+3.4 Proposed Architecture . . . . . . . . . . . . . . . . . . . . . . . . . . . . 49
+3.5 Partition Algorithm . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 49
+5.1 TSP-20 Instance: Comparison of the Complete Graph (Before) and the
+Sparsified Graph (After) . . . . . . . . . . . . . . . . . . . . . . . . . . . 62
+5.2 TSP-50 Instance: Comparison of the Complete Graph (Before) and the
+Sparsified Graph (After) . . . . . . . . . . . . . . . . . . . . . . . . . . . 62
+5.3 Relative Runtime Performance: pycuts vs. Concorde across Graph Sizes 63
+viii
+
+List of Tables
+5.1 Sparsification Results across Different Graph Sizes . . . . . . . . . . . . . 61
+5.2 Performance Comparison with Existing Methods . . . . . . . . . . . . . . 61
+ix
+
+List of Algorithms
+1 Main Method: Optimal Partition for Sparse TSPs . . . . . . . . . . . . . 42
+2 Helper Function: Find PseudoBridge . . . . . . . . . . . . . . . . . . . . . 43
+3 Helper Function: Remove Pseudo Bridge . . . . . . . . . . . . . . . . . . . 43
+4 Helper Function: Combine Sub Tours . . . . . . . . . . . . . . . . . . . . 43
+x
+
+Abbreviations xi
+MCTS M onte Carlo Tree Search
+SGBS S imulation Guided Beam Search
+LKH L in-Kernighan Heuristic
+LEHD L ight Encoder Heavy Decoder
+SHPP S hortest Hamiltonian Path Problem
+KNN k -Nearest Neighbors
+BB B ranch and Bound
+DL D eep Learning
+RL R einforcement Learning
+CO C ombinatorial Optimization
+OR O perations Research
+MST M inimum Spanning Tree
+NLNS N eural Large Neighborhood Search
+DIFUSCO DIF fUsion Solvers for Combinatorial Optimization
+DACT D ual Aspect Collaborative attention Transformer
+CVRP C apacitated Vehicle Routing Problem
+CP C onstraint Programming
+GNN G raph Neural Network
+VLSI V ery Large Scale Integration
+GIRE G uided Infeasible Region Exploration
+LP L inear Programming
+DP D ynamic Programming
+SOTA S tate of the Art
+DNA D eoxyribonucleic Acid
+ML M achine Learning
+GLOP G lobal and Local Optimization Policies
+GLS G uided Local Search
+SL S upervised Learning
+OHC O ptimal Hamiltonian Cycle
+RBG R ewriting-by-Generating
+HTML H yperText Markup Language
+TSPLIB T raveling Salesman Problem LIBrary
+MDP M arkov Decision Process
+DRL D eep Reinforcement Learning
+
+Abbreviations xii
+POMO P olicy Optimization with Multiple Optima
+TSP T raveling Salesman Problem
+VRP V ehicle Routing Problem
+DIMES D ifferentiable MEta Solver
+UL U nsupervised Learning
+ILP I nteger Linear Programming
+DPDP D eep Policy Dynamic Programming
+VSR V ariable Strategy Reinforced approach
+POPMUSIC P artial Optimization Metaheuristic Under Special
+Intensification Conditions
+AR A utoRegressive
+NP N on-deterministic Polynomial-time
+NAR N on-AutoRegressive
+MIS M aximum Independent Set
+NCO N eural Combinatorial Optimization
+SHP S hortest Hamiltonian Path
+RNN R ecurrent Neural Network
+NN N eural Network
+
+Dedicated to the victims of the July Revolution 2024
+xiii
+
+Chapter 1
+Introduction
+Combinatorial optimization (CO) problems, particularly those involving routing, such as
+the Travelling Salesman Problem (TSP), play a crucial role in various real-world appli-
+cations, from logistics and transportation to network design and bioinformatics. These
+problems are notorious for their computational complexity, which escalates significantly
+with the size of the instances, largely due to the exponential increase in the search space,
+basically these problems being NP-hard. Existing neural solvers, while promising, often
+struggle to scale efficiently with larger instances on current hardware. Current methods
+that demonstrate scalability typically fall within the Learn-to-Search (L2S) or Learn-to-
+Predict (L2P) paradigms[61, 94]. However, most of these approaches fail to manage the
+combinatorial explosion effectively.
+A critical factor contributing to the complexity is the number of edges |E|= O(|V|2)
+in fully connected Euclidean graphs, which are commonly used in TSP benchmarks.
+This realization directs our attention towards sparsification as a potential solution. By
+reducing the number of edges, we can simplify the search space and make the problem
+more tractable. Sparsification aligns well with real-world routing scenarios where graphs
+are rarely fully connected, thus providing a more practical approach.
+The challenge lies in performing sparsification without compromising the integrity of the
+optimal tour. Na¨ ıve edge elimination could disrupt the global structure of the graph and
+violate the TSP’s cyclic constraint, leading to inefficient solutions. Therefore, our goal is
+1
+
+Chapter 1: Introduction 2
+to learn a sparsification heuristic that preserves optimal tour edges, significantly reduces
+the search space, and remains applicable to larger graphs.
+In contrast to traditional methods that rely on reconstruction strategies or parallel and
+heuristic searches to improve solutions, our approach aims to preprocess the graph by
+reducing its search space before applying these methods. This preprocessing step could
+potentially enhance the performance of various neural methods by simplifying the initial
+solution space and facilitating more efficient post hoc optimization. Sparse graphs also
+tend to enhance the learning efficiency of Graph Neural Networks (GNNs) by reducing
+noise in message passing, thereby improving convergence rates.
+We provide a detailed overview of our envisioned algorithm and present preliminary tests
+to illustrate its potential performance. Our approach involves identifying and preserving
+optimal edges using well-grounded mathematical heuristics, learning exact optimal edge-
+preserving sparse graphs, and exploring the trade-offs in graph sparsity. By leveraging
+GNNs, which excel at learning graph properties, we aim to establish a robust framework
+for sparsification that can improve the scalability and efficiency of TSP solvers.
+1.1 Challenges
+Commonly used approaches for solving large-scale routing problems, such as ILP solvers
+[3, 27], heuristic searches [54], and neural solvers [47], often struggle to scale efficiently
+with larger instances. While these methods have shown promise, they typically fail to ad-
+dress the fundamental issue of combinatorial explosion in the search space as the number
+of vertices increases. Over the years, various techniques have been developed to tackle
+the scalability issue in routing problems, primarily focusing on reducing the computa-
+tional complexity or improving solution quality. These include local search heuristics
+[14], meta-heuristics like genetic algorithms [74], and more recently, learning-based ap-
+proaches [6]. While these methods have made significant strides, they often struggle
+with the quadratic increase in edge count for fully connected graphs, which are common
+in TSP benchmarks. While some sparsification approaches in routing problems borrow
+directly from graph theory [34], others have attempted various strategies such as edge
+
+Chapter 1: Introduction 3
+elimination based on probabilistic properties [86], learning-based edge pruning [20], and
+adaptive sparsification (in form of beamsearch) during the solution process [11]. The
+majority of these studies, however, focus on specific problem instances or struggle to
+maintain solution quality as sparsification increases. To develop a robust, scalable, and
+generalizable approach for sparsifying and partitioning routing problems, particularly for
+larger instances, we need to address the following challenges:
+C1 We need to design a sparsification heuristic that can effectively preserve optimal
+tour edges while significantly reducing the overall edge count, adapting to various
+problem sizes and structures.
+C2 Using graph neural networks, we need to develop a learning-based approach for
+sparsification that can generalize across different problem instances and scales.
+C3 The identification and preservation of pseudo-bridges in a computationally efficient
+manner, crucial for effective graph partitioning in routing problems.
+C4 We need to explore the trade-offs between sparsification levels and solution quality,
+developing methods to determine optimal sparsity for different problem instances.
+C5 The integration of our sparsification and partitioning methods with existing solvers,
+ensuring compatibility and performance improvements across various solution ap-
+proaches.
+1.2 Motivations
+Routing problems, including the Travelling Salesman Problem (TSP), are essential in lo-
+gistics, planning, VLSI, DNA sequencing, transportation, and communication networks,
+where optimizing routes can significantly reduce costs and improve efficiency. Traditional
+methods often struggle with fully connected graphs due to their immense search space.
+Our approach focuses on sparsification to reduce the number of edges, mimicking the
+natural sparsity in real-world problems and making the search space more manageable.
+We aim to develop a learning-based heuristic that preserves optimal tour edges while
+
+Chapter 1: Introduction 4
+eliminating redundant ones, enhancing the performance of existing routing solvers by
+reducing noise and focusing on relevant information. Integrating sparsification and parti-
+tioning techniques in preprocessing helps improve the scalability and efficiency of neural
+and heuristic solvers, providing a robust framework for large-scale routing problems. To
+ensure the success and validity of our study the following requirements must be met:
+R1 Edge Preservation: Ensure the sparsification heuristic preserves optimal tour
+edges to maintain the effectiveness of the solutions.
+R2 Reduction in Search Space: Achieve substantial decrease in the number of edges
+to lower the complexity of the search space.
+R3 Graph Neural Network Integration : Seamlessly integrate our sparsification
+and partitioning methods with GNN-based solvers, optimizing the learning process.
+R4 Ablation Studies : Perform ablation studies to analyze the influence of various
+components and parameters on the overall performance of our methods. Explore
+the trade-offs in sparsity levels to determine the balance between reduced complexity
+and solution quality.
+1.3 Objectives
+Based on the outlined requirements, the following research objectives are established
+to guide our study on learning sparsification and partitioning for generalizing routing
+problems on larger instances:
+O1 Develop a sparsification heuristic that intelligently preserves optimal tour edges
+while significantly reducing the number of edges.
+O2 Formulate methods to achieve a substantial reduction in search space complexity
+through effective sparsification.
+O3 Design and validate sparsification techniques that scale efficiently to large graph
+instances, ensuring computational feasibility.
+
+Chapter 1: Introduction 5
+O4 Ensure the flexibility and adaptability of the developed methods for use with other
+neural and heuristic solvers.
+1.4 Contributions
+If we successfully achieve the objectives outlined in the previous subsection, our research
+will contribute the following to the field of combinatorial optimization and routing prob-
+lems:
+N1 Learning Sparsification Heuristic: The development of a novel learning scheme
+from a sparsification heuristic that effectively preserves optimal tour edges while
+significantly reducing the number of edges, contributing to more efficient solution
+methods for routing problems. This should reduce search space of the problem
+trivially and thus should give us better scalability
+N2 Flexible and Adaptable Methods : Development of methods that are flexible
+and easily adaptable for use with various neural and heuristic solvers, broadening the
+applicability and integration of our techniques in different optimization frameworks.
+N3 Partitioning Scheme: Design a fast partitioning scheme that enables us to reduce
+the problem to smaller instances.
+1.5 Organization
+The thesis is organized in a systematic way. The organization can be seen as:
+• In Chapter 2, we examine the present state of the literature and furnish the neces-
+sary groundwork essential for our undertaking.
+• Chapter 3 lays out the theoretical groundwork for our proposed algorithm, along
+with its theoretical soundness, and the concrete implementation of our proposed
+algorithm.
+
+Chapter 1: Introduction 6
+• Chapter 4 goes over the implementation details and implementation specific chal-
+lenges.
+• Chapter 5 presents the empirical analysis obtained from the experimental results,
+and draws comparisons to the existing SOTA methodologies.
+• Finally, Chapter 6 draws the conclusion of the work and outlines the key milestones
+of the project.
+
+Chapter 2
+Related Works
+This chapter presents an extensive review of the existing literature on solving the Travel-
+ing Salesman Problem (TSP) and the utilization of machine learning techniques in com-
+binatorial optimization. In section 2.2, we begin with an introduction to the TSP, high-
+lighting its significance across various industries. Following this, section 2.3 offers a de-
+tailed exploration of traditional methods for solving the TSP, including exact approaches
+such as dynamic programming and integer linear programming, alongside heuristic and
+metaheuristic algorithms. The chapter then shifts focus to more recent advancements,
+particularly neural-based methods for solving the TSP. Drawing from the framework pro-
+posed by Ma et al. [61], where they classify these approaches into three main categories:
+Learning to Construct (L2C), Learning to Search (L2S), and Learning to Predict (L2P),
+as discussed in section 2.2. Each of these categories is explored in detail, highlighting key
+works and recent advancements. Given the growing interest in scaling neural methods
+to larger TSP instances, we dedicate a subsection to discussing recent work in this area
+in 2.2.2.4. This includes approaches like graph sampling, differentiable meta-solvers, and
+hierarchical strategies. The chapter also covers important background concepts crucial
+to our proposed approach. We discuss graph sparsification techniques in 2.3.2, both tra-
+ditional and learning-based, which can significantly improve solver performance. Graph
+partitioning methods are also explored in 2.3.3, as they form a key component of many
+divide-and-conquer approaches to the TSP. Finally, we provide a broader context by dis-
+cussing machine learning approaches to combinatorial optimization in general in 2.3.4.
+7
+
+Chapter 2: Literature Review 8
+This includes an overview of supervised learning, reinforcement learning, and graph neu-
+ral networks, all of which play important roles in modern TSP solvers. This literature
+review sets the stage for our proposed method, which builds upon and combines several of
+these existing approaches to create a novel, efficient solver for large-scale TSP instances.
+2.1 Travelling Salesman Problem
+The Traveling Salesman Problem (TSP) is one of the most extensively studied com-
+binatorial optimization problems, owing to its broad range of applications and inherent
+computational complexity.
+Definition
+Definition 2.1. Given G = (V,E) where V = {v1,··· ,vn}and E is set of edges
+that connect the vertices and let c : E →R be a cost function assigning a real
+number to each edge. The Traveling Salesman Problem (TSP) seeks to find a
+permutation π of the set {1,2,...,n }that minimizes:
+n−1∑
+i=1
+c(vπ(i),vπ(i+1)) + c(vπ(n),vπ(1)) (2.1)
+Where π(i) represents the index of the ith vertex in the tour, and the last term
+c(vπ(n),vπ(1)) represents the return to the starting vertex.
+0 50 100
+X-coordinate
+20
+40
+60
+80Y-coordinate
+Graph of Edges
+Solvers
+0 50 100
+X-coordinate
+20
+40
+60
+80Y-coordinate
+TSP Solution
+Figure 2.1: 2D-Euclidean TSP solution
+
+Chapter 2: Literature Review 9
+The significance of the TSP extends across various industries, including warehouse man-
+agement, transportation, supply chain logistics, hardware design, and manufacturing,
+making it a crucial problem in the realm of routing problems as can be seen in [65, 72].
+Despite its real-world relevance, the Traveling Salesman Problem (TSP) is catego-
+rized as NP-hard, implying that no known algorithm can solve all instances efficiently.
+Finding the optimal solution through exhaustive search has a factorial time complexity
+of O(n!), rendering it impractical for even relatively small values of n.
+In this work, we propose a novel approach to solving theTraveling Salesman Problem
+(TSP) by integrating graph sparsification, partitioning, and machine learning techniques.
+Initially, we sparsify the graph using GNNs from [19] with features derived from [20].
+Next, we partition the graph to establish a divide-and-conquer framework. Finally, we
+employ machine learning techniques to obtain an optimal or near-optimal solution. This
+hybrid methodology harnesses the strengths of both graph theory and machine learning
+to efficiently address the complexity of the TSP.
+2.2 An Overview of TSP literature
+The Traveling Salesman Problem (TSP), and more broadly, Combinatorial Op-
+timization, represent one of the most extensively studied classes of problems in com-
+puter science. TSP, in particular, is arguably the most researched NP-hard problem,
+with numerous aspects explored in the literature. From strict mathematical bounds to
+cutting-edge combinatorial and neural methods, TSP serves as the de facto benchmark
+for testing and evaluating novel approaches.
+Research into TSP has yielded the discovery of several important optimization algo-
+rithms for example Branch-and-Bound, Local Search[14], Cutting Planes[17], Simulated
+Annealing[45] etc. Subsequent discussion will be confined to only the works that relate
+to our idea. We can generally divide TSP solvers into two main categories Traditional
+and Neural solvers [8]
+
+Chapter 2: Literature Review 10
+2.2.1 Traditional Solvers
+Traditional solvers are the established paradigm of how combinatorial solvers work. They
+can further be divided into two categories: exact and approximate/heuristic algorithms.
+Exact algorithms guarantee optimality; however, they become computationally intractable
+as the problem size increases. Exact algorithms involve exhaustive search schemes. Var-
+ious exhaustive search schemes were proposed, such as, the dynamic programming ap-
+proach that works in O(n22n) [4]. The benchmark exact solvers include Gurobi, [27]
+which utilizes branch-and-bound and cutting planes to speed up integer programming,
+and Concorde, [3] which is currently the fastest exact TSP solver for large instances.
+Approximate/Heuristic algorithms attempt to balance optimality and computational ef-
+ficiency. Several heuristic algorithms have been developed to address the Traveling
+Salesman Problem (TSP). The Christofides algorithm, for instance, approximates TSP
+solutions by leveraging Minimum Spanning Trees (MSTs) [26]. The greedy insertion algo-
+rithm does so in O(n2) time.Google’s OR-Tools employ various optimization techniques,
+including Simulated Annealing [45], Greedy Descent, and Tabu Search [25], to explore
+TSP-Solvers
+Neural
+L2S L2P L2C
+Heuristic/Approx
+Christophedes AlgoLKH OR
+Tools
+Exact
+ILP DP Exhaustive
+Gurobi Concorde
+Figure 2.2: Different Methods to Solve TSP
+
+Chapter 2: Literature Review 11
+the search space and iteratively refine solutions through local search methods. The 2-
+opt[14]/3-opt exchange algorithm proposes a heuristic that breaks edges of the tour and
+reconnects them to reduce the tour length. The Lin-Kernighan heuristic extended this
+idea of ruin-and-repair to an arbitrary number of edges. LKH leverages this with MST
+to solve the problem, the current version of LKH[28], LKH-3 [29], being the best-known
+heuristic method for solving the TSP.
+2.2.2 Neural Methods
+In the last decade work into neural Combinatorial Optimization has surged, target-
+ing near-optimal and rapid solutions to combinatorial problems once thought to be in-
+tractable. Most neural methods initially tackle TSP for it’s wide applicability. Ma et
+al. in NeuOpt [61], divide neural solvers into three categories: Learning-to-Construct,
+Learning-to-Search and Learning-to-Predict.
+2.2.2.1 Learn-to-Construct(L2C)
+Learn-to-Construct solvers autoregressively build solutions by inserting nodes in a par-
+tial tour. Ptr-Net[85], the first modern neural solver is an example of these. They utilize
+an RNN and supervised learning to construct solutions. This was extended to RL later
+[5]. Graph Neural networks were utilized for embeddings [16] and encoding[18]. Kool et
+al significantly advanced the literature with attention models [47] resulting in numerous
+works related to the attention mechanism [51, 90, 92, 93]. POMO[49] extends the at-
+tention model by using diverse rollouts, although it is a general RL method. In general
+L2C methods employ greedy rollouts to produce solutions. However, local minima is of
+concern. This issue has been tackled in the literature through sampling [47], beam search
+[90], invariant representations [37, 43], and learning collaboriative policies [41]. Efficient
+Active Search [31] addresses the challenge by updating a small subset of pre-trained pa-
+rameters during the search process using reinforcement learning. Subsequently, SGBS [11]
+developed this further by expanding nodes that are marked as promising by the learned
+policy and rollouts.
+
+Chapter 2: Literature Review 12
+MLP
+Figure 2.3: A generic L2C solver.
+In the figure 2.3 we can see that higher dimensional Embeddings are being learnt using
+some form of representation learning for graphs, be it GAT, GCNs, Node2Vec, Struc2Vec
+and much more. These are then being passed through an MLP to produce probabilites
+for the nodes to be in a solution, given a subtour of said solution. Using this idea we
+may, choose greedily, or using some other metric which next node to choose to continue
+our tour. Mathematically, we choose a next node that maximizes:
+P(xn|xn−1...)
+We can also use REINFORCE [87] which samples a solution from this discrete solution
+space minimizing some loss function. Essentially computing the probability distribution
+is the key idea here, all other methods do nothing but compute a feasible solution from
+this infeasible, discrete, search space.
+
+Chapter 2: Literature Review 13
+2.2.2.2 Learn-to-Solve(L2S)
+Learn-to-Solve(L2S) methods start from a solution and then iteratively refine it using a
+learned search process. NeuRewriter [9] employs a policy that is decomposed into two neu-
+ral network components: a region-picking and a rule-picking module. Both components
+are trained using the actor-critic method in reinforcement learning. L2I [57] iteratively
+enhances the solution by selecting and applying an improvement operator, guided by a
+reinforcement learning-based controller. While these approached optimality, they had a
+long run time. NLNS [32] advanced this by introducing a destruction operators which
+destroyed tours by removing customers and sub-tours outright and then formulated the
+repair process as an RL problem. CROSS exchanges heuristics were learned in [44].
+Focus then shifted to the k-opt heuristic used by the LKH solvers. Yaoxin Wu et al. [88]
+used a self-attention-based policy network to guide the 2-opt heuristic, showing promising
+improvement over Kools’ attention mechanism [47]. Ma et al [63] improved this by using
+Dual Aspect Collaborative Attention (DACT) and a cyclic positional encoding method(to
+respect circularity and symmetry of solutions). This was further improved upon in with
+synthetic attention in [62]. Costa et al. [15] attempted to steer 2-opt using an RNN
+based policy, qhich was later extended to the 3-opt heuristic [79]. NeuOpt [61] presented
+a novel L2S method that learns flexible k-opt exchanges (handling opt exchanges for any
+k >2). They also proposed the guided infeasible region exploration (GIRE) and reward
+shaping to steer the RL process more efficiently, making NeuOpt the first L2S solver that
+was superior to most L2C solvers.
+2.2.2.3 Learn-to-Predict(L2P)
+Learn-to-Predict(L2P) solvers predict information that guides the search process. Joshi
+et al. [39] introduced GNN-based models to generate heatmaps indicating likelihood of an
+edge being in the optimal solution, with solution construction using beam search. In GLS
+[35], a heatmap scheme was used to guide traditional local search heurisitics. DIFUSCO
+[80] trades in the GNN with diffusion models.
+
+Chapter 2: Literature Review 14
+Figure 2.4: A generic L2P solver.
+L2P solvers are promising because they show better scalability; however, they were ini-
+tially thought to be restricted to supervised learning and incapable of handling VRP
+constraints. The L2P solver DPDP [46] managed to solve VRP and more recently Yim-
+meng Min et al. [67] introduced a novel surrogate loss function that pushes the model
+to find optimal path and preserve cyclic nature, They then used this to train a GNN
+using Unsupervised learning and generated a heatmap. L2P solver have also attempted
+to predict latent continuous space for the underlying solution space. [30]
+2.2.2.4 Scaling Neural Methods
+Now that most solvers have reached parity or are surpassing industry standard heuristic
+solvers on optimality and exact solvers on time efficiency for smaller instances, the next
+frontier is to scale up these methods for larger instances. Work done here is relatively
+recent.
+
+Chapter 2: Literature Review 15
+In 2021, Zhan Hua Fu et al. [22] proposed training a small-scale model that was re-
+peatedly utilized to generate heatmaps for TSP instances of arbitrarily large sizes. Their
+approach relied on graph sampling, graph conversion, and heatmap merging to extend
+the model’s applicability to larger problem instances. These heatmaps then guidided
+search the solution using RL and MCTS. This method scaled upto 10000 vertices with
+optimality gaps lower than 5% and required about 1/8th the time.
+Expanding on the concept of latent search space introduced by Hottung et al. [30] for rout-
+ing problems using variational autoencoders, Qiu et al. proposed DIMES [73]. DIMES
+is a differentiable meta-solver that utilizes a compact continuous space to parameterize
+the underlying distribution of candidate solutions, enabling more efficient exploration
+and optimization. This approach enables large-scale parallel sampling, facilitating sta-
+ble REINFORCE-based training and fine-tuning. DIMES effectively addresses scalability
+challenges faced by deep reinforcement learning (DRL) solvers, particularly the issue of
+sparse rewards as graph sizes increase.
+Another notable work is LEHD [59] where Fu Luo et al. introduced a novel Light Encoder
+Heavy Decoder architecture trained on smaller instances using supervised learning (not
+RL) where they learn to construct partial solutions. This has been shown to scale up to
+graphs of size 1000.
+Ouyang et al. [69] proposed an architecture that learns with equivariance and interleaves
+local search heuristics with RL training, exhibiting promising results on TSP instances
+upto 10,000 nodes.
+NeuroLKH [91] and VSR-LKH [96] attempt to augment inflexible parts of LKH with
+learning based methods, though they provide no significant time benefits. They provide
+significant speedup compared to pure heuristics.
+Learning to Delegate [52] iteratively refines solutions by identifying suitable subproblems
+and delegating them to a black-box solver. The approach considers only a linear number
+of subproblems, selected through regression, and employs a transformer trained on a set
+of instances as the black-box solver.
+
+Chapter 2: Literature Review 16
+RBG [97] introduces a hierarchical framework for solving Vehicle Routing Problems
+(VRPs). Their approach utilizes a rewriter agent to globally refine the partitioning of
+customers, while an elementary generator locally infers solutions for each region.
+Learning What to Defer [2] enhances the scalability of neural combinatorial optimization
+solutions for the Maximum Independent Set (MIS) problem through an adaptive multi-
+stage scheme. By learning to distribute element-wise decisions across stages, the model
+prioritizes easier decisions first and incrementally simplifies complex ones by pruning
+uncertainty, achieving significant time efficiency improvements.
+Select and Optimize [10] generalizes a small-scale selector and optimizer network for
+large-scale TSP instances, drawing inspiration from the divide-and-conquer strategies
+of POPMUSIC [82]. This approach iteratively selects and optimizes subproblems in
+parallel, leveraging ruin-and-repair k-opt schemes to escape local minima from a global
+perspective.
+Numerous studies have explored the use of divide-and-conquer metaheuristics [21, 81, 89,
+95]. Recently, Hou et al. [33] introduced a Two-Stage Divide model for VRP, where a
+large-scale CVRP is autoregressively decomposed into smaller TSP subproblems. Kim
+et al. [42] proposed a hierarchical strategy involving a seeder, which generates candidate
+solutions, and a reviser, which refines these solutions by breaking them into smaller sub-
+tours for optimization.
+More recently, H-TSP [70] addressed the problem with a two-stage policy. The upper-
+level policy selects a small subset of nodes, while the lower-level policy generates a locally
+optimal tour connecting these nodes to the existing partial tour.
+GLOP [94] proposes a unified heirachical framework that is scalable. It partitions TSPs
+into SHPPs. They leverage non-autoregressive neural heuristics for broader problems
+and autoregressive heurisitics for fine-grained subproblems. This essentially combines the
+speed of NAR methods with accuracy of AR methods, offering the best of both worlds.
+
+Chapter 2: Literature Review 17
+2.3 Background Study
+In the following subsections we shall provide theoretical introductions to concepts and
+methods relevant to our idea briefly to aid the reader. We also provide further cited
+material for readers look into. We start by formally introducing the Travelling Salesman
+Problem in 2.1. We then provide short theoretical discussions on traditional methods of
+solving said problem in 2.3.1. This provides groundwork for the naive reader to under-
+stand how the ideas evolved in the field. Later on we discuss the theoretical basis for our
+ideas and how they have been attempted in the literature in the two subsections, 2.3.2
+and 2.3.3. Lastly we discuss how CO problems are approached using Machine Learning
+in 2.3.4
+2.3.1 Traditional Approaches to Solving TSP
+2.3.1.1 Exact Methods
+The study of theTravelling Salesman Problem(TSP) has a long and rich history, with
+foundational contributions from von Neumann in 1951. This research has driven the de-
+velopment of several pivotal exact optimization methods. One such technique is Cutting
+Planes [17], which iteratively refines the feasible region to improve the solution. Another
+key method is Branch-and-Bound [50], a tree-based algorithm that systematically ex-
+plores the solution space to prune suboptimal candidates. Additionally, Dynamic Pro-
+gramming [4] offers an O(2nn2) solution for TSP, leveraging state-space representations
+and recursive decompositions to solve the problem efficiently. This method constructs
+solutions by breaking down the problem into subproblems, storing their solutions, and
+combining them to form the final optimal solution. By defining a state as a subset of cities
+and the last city visited, dynamic programming ensures that each state is computed only
+once, significantly reducing the computational complexity compared to a naive approach.
+This formulation is essential for understanding the TSP’s combinatorial nature and has
+paved the way for more advanced heuristics and approximation algorithms [58, 64, 83].
+
+Chapter 2: Literature Review 18
+The use of advanced Integer Linear Programming (ILP) solvers has significantly im-
+proved the efficiency and scalability of solving the Travelling Salesman Problem (TSP).
+General-purpose solvers such as Gurobi [27] employ sophisticated optimization tech-
+niques, including Cutting Planes (CP) [17] and Branch-and-Bound (BB) [50], to solve a
+variety of optimization problems, including TSP.
+In contrast, Concorde [3] is a specialized solver specifically designed for TSP. It combines
+ILP [77], CP [17], and BB [50] methods, and is widely considered the fastest exact solver
+for large-scale TSP instances. Concorde’s specialized algorithms and optimizations allow
+it to solve extremely large instances of the TSP, with sizes reaching up to 100,000 cities.
+Both solvers require the TSP to be formulated as an Integer Linear Program (ILP), with
+the specific formulation detailed below:
+minx
+∑
+e∈E
+dexe s.t.
+∑
+e∈Cut({v},V−{v})
+xe = 2 ∀v∈V
+∑
+e∈Cut(S,Sc)
+xe ≥2 ∀S ⊂V,S ̸= ∅,S ̸= V
+where Cut(A,Ac) = {evv′ s.t. v∈A,v′∈Ac}
+xe ∈{0,1} ∀e∈E
+(2.2)
+ILPs can be relaxed into a Linear Programming[77] (LP) problem [17] with xe ∈[0,1]
+in the standard form: min dTx subject to Ax≤b and x≥0. While the linear program-
+ming (LP) relaxation of the TSP is a convex problem solvable in ( O(n2.5)) time [84], the
+integer constraints render the full problem non-convex and NP-hard. The Cutting Planes
+technique [17] attempts to bridge this gap by iteratively refining the convex relaxation.
+It identifies violated sub-tour elimination constraints and incorporates them into the LP
+formulation, gradually sculpting the feasible region to better approximate the discrete
+solution space. This process transforms the initial convex problem into a tighter, but still
+convex, approximation of the non-convex integer program. However, solving the resulting
+LP doesn’t guarantee an integer solution ( xe ∈{0,1}). The continuous values obtained
+necessitate branching decisions about edge inclusion in the tour, leading to a non-convex
+
+Chapter 2: Literature Review 19
+search tree of potential solutions. The Branch-and-Bound algorithm [50] navigates this
+non-convex landscape efficiently by using convex relaxations (the LP solutions) at each
+node to bound the optimal value and prune suboptimal branches. This approach effec-
+tively combines convex optimization techniques (solving LPs) with strategies for handling
+non-convexity (branching and bounding). Consequently, the overall complexity for solvers
+like Concorde and Gurobi is O(n2.5b(n)), where O(n2.5) accounts for the LP solving and
+O(b(n)) represents the number of branches explored.
+Currently there are faster LP solvers such as [12] and they are guaranteed to find optimal
+solutions but unfortunately all of them become intractable as n grows as b(n) can grow
+to be exponential.
+2.3.1.2 Heuristic and Metaheuristic Algorithms
+The Lin-Kernighan (LKH) algorithm, as described by Helsgaun [29], is a local search
+heuristic widely regarded as one of the most effective methods for solving the symmetric
+Traveling Salesman Problem (TSP). Originally inspired by Croes [14], LKH starts
+with an initial Hamiltonian cycle and iteratively refines it by exploring neighboring tours
+with shorter lengths. This optimization continues until a local minimum is reached, as
+further detailed by Luu [60].
+Beyond LKH, several approximation algorithms have been developed to efficiently address
+the TSP. Notably, the Christofides algorithm [26] is a polynomial-time approach that
+guarantees a solution within a factor of 1.5 of the optimal. By leveraging minimum
+spanning tree construction, this algorithm operates with a time complexity ofO(n2 log n),
+making it a practical choice for large-scale instances. Another family of approaches,
+known as insertion algorithms, includes the farthest insertion method [76]. This
+technique, along with its variants (nearest and greedy insertion), achieves an (O(n2)) time
+complexity. The farthest insertion method, in particular, provides an approximation ratio
+of 2.43 and is often regarded as the most effective among insertion strategies in practical
+applications. Beyond these deterministic methods, metaheuristic approaches have gained
+prominence in tackling the TSP. Techniques such as Simulated Annealing [45] and
+Tabu Search[25] offer powerful mechanisms for exploring the vast solution space. These
+
+Chapter 2: Literature Review 20
+methods are frequently combined with Local Search techniques [14] to refine solutions
+iteratively. Google’s OR Tools [23] use these methods in their routing solver.
+2.3.2 Graph Sparsification
+Graph sparsification, particularly in the context of the Traveling Salesman Problem
+(TSP), refers to the strategic elimination of edges that are unlikely to be part of the
+optimal tour. This reduction in graph complexity helps improve computational efficiency
+while preserving the essential structure needed to obtain high-quality solutions. Formally,
+given a graphG= (V,E), the goal of sparsification is to produce a subgraphG′= (V,E′⊆
+E) that retains all or nearly all edges of the optimal TSP solution. The importance of
+sparsification arises from the fact that the number of edges |E|scales quadratically with
+the number of vertices |V|, thus making sparsification critical for computational efficiency
+in solving TSP instances.
+2.3.2.1 Exact and Probabilistic Sparsification
+Classical approaches to sparsification include exact and probabilistic methods. For in-
+stance, Wang and Remmel [86] present a probabilistic sparsification algorithm running
+in O(Nn2), where N denotes the number of frequency quadrilaterals used. This iterative
+method leverages the frequency of edges appearing in optimal tours and prunes approx-
+imately one-third of the edges in each iteration, quickly producing sparse graphs that
+contain the optimal solution with high probability. Empirical studies show substantial
+speed-ups in exact solvers using their approach.
+An exact sparsification approach is described by Hougardy and Schroeder [34], which
+introduces an O(n2 log n) algorithm designed to remove edges that cannot possibly be
+part of any optimal solution. This deterministic method has demonstrated remarkable
+results, including an 11-fold improvement in computational efficiency without compro-
+mising solution optimality.
+
+Chapter 2: Literature Review 21
+2.3.2.2 Limitations of Traditional Sparsification
+Traditional sparsification methods, particularly heuristic methods such as k-nearest neigh-
+bors (k-NN), present significant drawbacks. While computationally simple, k-NN sparsi-
+fication can inadvertently eliminate edges crucial for optimal tours, especially in instances
+where optimal edges connect distant clusters of nodes [53]. Li et al. [53] highlight that
+reliance on k-NN methods causes learning based solvers relying on k-NNs to exhibit overly
+greedy behavior, which negatively affects performance on instances generated from dis-
+tributions differing from training data.
+(a) Sparsification byk-nn (b) Fully Connected Graph
+Figure 2.5: Example Where k-NN sparsification fails
+2.3.2.3 Learning-Based Sparsification Approaches
+Recent advancements leverage machine learning techniques to enhance graph sparsifica-
+tion. Fitzpatrick et al. [20] introduced a machine learning-driven pruning heuristic that
+utilizes features derived from linear programming relaxations, cutting planes, minimum-
+weight spanning tree heuristics, and various statistical analyses to effectively eliminate
+edges unlikely to be part of the optimal TSP solution. Their approach effectively iden-
+tifies edges unlikely to appear in optimal solutions, dramatically reducing the number of
+decision variables (by more than 85% on standard TSP benchmarks such as TSPLIB and
+MATILDA) without significantly impacting optimality.
+
+Chapter 2: Literature Review 22
+Another learning-based advancement is the Graph Edge Attention Network (GREAT)
+proposed by Lischka et al. [56]. GREAT uses edge-based graph neural networks trained
+via supervised edge classification to predict most promising edges for inclusion in optimal
+solutions. This model notably outperforms traditional sparsification methods, creating
+sparse yet informative subgraphs, thus significantly aiding downstream exact solvers.
+Moreover, their reinforcement learning-enhanced framework achieved SoTA performance,
+particularly for asymmetric and non-Euclidean TSP variants.
+Add & Norm
+Feed Forward
+Add & Norm
+GREAT Sublayer
+Edge Embeddings
+Edge Feature Inputs
+GREAT Layer ×n
+Figure 2.6: GREAT Layer Architecture
+2.3.2.4 Importance of Sparsification for Graph Neural Networks and Trans-
+formers
+Recent literature emphasizes the substantial impact graph sparsification can have on
+the effectiveness of deep learning models, such as Graph Neural Networks (GNNs) and
+transformers. Lischka et al. [55] extensively analyzed the performance of graph neural
+network (GNN) and transformer-based architectures, showing that naive dense repre-
+sentations hinder performance due to excessive and irrelevant information propagation.
+Their empirical results demonstrate dramatic improvements upon introducing sparsifica-
+tion techniques: the optimality gap for a Graph Attention Network (GAT) shrunk from
+15.66% to 0.7% (a 22-fold improvement) and for Graph Convolutional Networks (GCN),
+
+Chapter 2: Literature Review 23
+from 2.35% to 0.94%. This result is important because traditional combinatorial opti-
+mization frameworks [7] use k-NNs to sparsify graphs by default. Which may explain the
+overly greedy behavior for Neural CO as shown in Li et al [53].
+Dense Graph
+Sparse Graph
+TSP Solution
+sparsified
+slower
+inference
+faster
+inference
+Figure 2.7: Sparsification speeding up inference
+2.3.2.5 Advanced and Ensemble Sparsification Methods
+Recent advancements include sophisticated ensemble sparsification methods introduced
+by Lischka et al. [55], which involve combining sparsified graphs at multiple levels.
+Such ensembles enable neural architectures to simultaneously focus on highly promising
+local information while retaining broader connectivity essential for global reasoning. For
+instance, applying ensembles of different sparsification intensities reduced the optimality
+gap for TSP instances with 100 nodes from 0.16% to 0.10%, and completely eliminated the
+gap for TSP-50 instances. This ensemble approach represents a substantial improvement
+over traditional single-level sparsification methods.
+
+Chapter 2: Literature Review 24
+2.3.2.6 Implications and Limitations of Learning-Based Sparsification
+Learning-based sparsification approaches offer significant advantages, including adapt-
+ability to instances outside the training distribution and considerable sparsification while
+preserving optimality [20, 56]. However, these methods also face several critical chal-
+lenges, including the necessity of robust testing, interpretability issues of learned models,
+and the complexity associated with integrating machine learning techniques into tradi-
+tional combinatorial optimization frameworks [7].
+Nevertheless, the integration of machine learning techniques in graph sparsification con-
+tinues to reveal novel insights and heuristics, potentially benefiting other routing problems
+and combinatorial optimization domains [20].
+Thus, graph sparsification serves as a crucial preprocessing step, effectively balancing
+computational efficiency and solution quality in contemporary combinatorial optimization
+workflows.
+2.3.3 Graph Parititioning
+Given a Graph G= (V,E) we want divide it into multiple smaller sub-graphs G1,··· ,Gk
+where Gi = (Vi,Ei) and ⋃k
+i=1 Vi = V and {⋃k
+i=1 Ei}⊂ E. We do this so that we may be
+able to solve for these sub-graphs independently, since they are much smaller it would be
+take considerably less time to solve for them. Once the subproblems are solved, they must
+be seamlessly integrated to reconstruct a solution for the original problem. The way these
+subgraphs are merged plays a critical role in achieving an optimal or near-optimal tour.
+Ideally, the connections between subgraphs should be selected such that the resulting
+edges are part of an optimal or near-optimal tour, ensuring minimal cost while preserving
+the integrity of the overall solution.
+As shown in this figure, each of G1,G2,G3 will have a subtour(the optimal tour edges are
+marked in red), or to be more precise it will have the Optimal Hamiltonian Circuit
+
+Chapter 2: Literature Review 25
+G1 G2
+G3
+Zoom-in of G1
+v1
+v2v3
+v4
+Figure 2.8: Partitioned Graph Solution
+(OHC) for that sub-graph1. And these sub-graphs will then have to be connected, in this
+specific case we can see that v1 will be connected to G3 and v2 will be connected to G2.
+Currently there are many methods that first partition the graph using K-Means Clus-
+tering[36], K-Nearest Neighbours [38] (KNN), Multi-Level Graph Paritioning
+[40] then use Neural Methods/Exact Solvers to get a reasonably good solution.
+2.3.4 Machine Learning in Combinatorial Optimization
+Intractable combinatorial optimization (CO) problems are a significant concern in the
+literature. These problems naturally arise in real-world scenarios, such as planning and
+routing. However, their intractable nature renders manual optimization by humans im-
+practical, and even current hardware requires an exorbitant amount of time to compute
+solutions. Consequently, there is a strong incentive to develop schemes that approximate
+optimal solutions at a lower cost. In this context, machine learning emerges as a natural
+fit for addressing CO problems. In the following sections, we will examine how machine
+learning techniques have been leveraged to effectively solve combinatorial optimization
+(CO) problems, aiming for optimal or near-optimal solutions.
+1It can be shown that it is possible to reduce this to a TSP[1] very easily
+
+Chapter 2: Literature Review 26
+2.3.4.1 Combinatorial Optimization
+Combinatorial Optimization can be thought of as finding an optimal solution from a set
+of discrete elements. Where the set of discrete elements are composed of certain decision
+variables accompanied by a set of constraints and is intractable in exhaustive search
+schemes. [68, 71, 78]. A CO problem, as defined in [48], can be thought of as minimizing
+an objective function f : Rn →R+ of variables z ∈Rn subject to a set of constraints C
+that must always be satisfied between the variables. Formally:
+O= argmin
+z
+f(z) subject to z ∈C (2.3)
+An assignment of z that respects Cis called a feasible solution. An optimal solution
+z is an assignment such that f(z) ≤f(w) for all feasible w.
+2.3.4.2 Machine Learning Approaches
+Machine Learning (ML) focuses on learning patterns from data when the underlying
+distribution is unknown. In Supervised Learning (SL), we are given input-target pairs
+and The objective is to learn a function that maps inputs to targets by minimizing a loss
+function, which quantifies the discrepancy between predictions and actual values. The
+ultimate goal is generalization, ensuring that the model performs effectively on unseen
+data.
+Formally, if X represents inputs and Y the targets, both following an unknown distribu-
+tion P, the supervised learning task is to minimize the expected loss [6]:
+min
+θ
+EX,Y∼P ℓ(Y,fθ(X)) (2.4)
+Since we cannot directly compute this, we approximate it using a finite dataset Dtrain,
+yielding the empirical loss:
+min
+θ
+∑
+(x,y)∈Dtrain
+1
+|Dtrain|ℓ(y,fθ(x)) (2.5)
+
+Chapter 2: Literature Review 27
+Generalization is assessed by evaluating this loss on a separate test set Dtest.
+In Deep Learning (DL), complex functions are built to capture intricate relationships in
+high-dimensional data. Unsupervised Learning (UL), where there are no explicit targets,
+seeks to uncover hidden patterns in data distributions, though it remains a less explored
+area. Unsupervised methods are discussed in 2.2.2.
+2.3.4.3 Reinforcement Learning
+Reinforcement Learning (RL) can be applied to Combinatorial Optimization (CO) by
+modeling the problem as a Markov Decision Process (MDP). As described by Mazyavkina
+et al. [66], an MDP is represented as a tuple M = ⟨S,A,R,T,γ,H ⟩, where:
+• S represents the state space, where st ∈S. In CO, states typically correspond
+to partial solutions that need to be completed or candidate solutions that require
+improvement.
+• A denotes the action space, where at ∈A. Actions consist of either extending
+partial solutions or altering completed ones.
+• Ris the reward function, which maps state-action pairs to real values,R: S×A→
+R. Rewards signal the effect of actions in terms of improving or degrading the
+solution.
+• T defines the transition function, T(st+1|st,at), governing the transition dynam-
+ics between states based on actions. In CO, transitions are often deterministic and
+known beforehand.
+• γ is the discount factor, 0 < γ≤1, used to balance short-term and long-term
+rewards.
+• H, known as the horizon, specifies the length of an episode. An episode consists of
+a sequence {st,at,st+1,at+1,... }H
+t=0. In Learning to Optimize (L2C) approaches, the
+episode terminates once a solution is found, whereas in improvement-based methods,
+
+Chapter 2: Literature Review 28
+a predefined stopping criterion is employed to determine when the process should
+end.
+The goal of an agent in a Markov Decision Process (MDP) is to learn a policy function
+that maps states to actions. Solving an MDP entails determining the optimal policy π∗
+that maximizes the expected cumulative discounted reward:
+π∗= arg max
+π
+E
+[H∑
+t=0
+γtR(st,at)
+]
+(2.6)
+Once the MDP formulation for a CO problem is established, the next step is to determine
+how the agent searches for the policy. RL algorithms are generally classified into two
+categories:
+• Value-based methods estimate the function Qπ(s,a), which represents the ex-
+pected reward of following a policy π from a given state s after taking action a.
+The optimal policy is derived by selecting the action that maximizes Qπ(s,a) for
+each state. A major challenge in this approach lies in accurately and efficiently
+estimating Qπ(s,a).
+• Policy-based methods directly model the policy as a parametric function πθ(s).
+By leveraging past experiences and optimizing the cumulative reward defined in
+equation (2.6), the parameters θ are adjusted to improve performance. Different
+policy-based approaches employ various strategies to search for the policy πθ(s)
+that maximizes the expected sum of discounted rewards.
+2.3.4.4 Graph Neural Networks
+Graph Neural Networks (GNNs), as described by Kotary et al. [48], are designed to learn
+node representations by iteratively aggregating and propagating information from neigh-
+boring nodes within a graph. This process enables GNNs to capture complex structural
+dependencies and relational patterns in graph-structured data. These node embeddings
+capture latent features about the graph’s structure and can be passed to subsequent com-
+ponents of a prediction model. The general idea is that the state of a node is not only
+
+Chapter 2: Literature Review 29
+a function of its own features but also of the features and states of its neighbors, thus
+enabling the model to incorporate relational information.
+Let xv represent the node featuresv, xco[v] represent the corresponding edge features,hne[v]
+denote the state embeddings of its neighboring nodes, and xne[v] represent the features of
+those neighboring nodes. Then, the GNN can be described by two key functions:
+hv = f(xv,xco[v],hne[v],xne[v]) (2.7)
+ov = g(hv,xv) (2.8)
+where f is a function that updates the state embedding of node v by incorporating its
+own features, edge features, and the state and features of its neighboring nodes. The
+function g then utilizes the updated state embedding hv along with the node’s original
+features xv to generate the final output or prediction for the node, denoted as ov.
+These relationships can also be expressed in matrix form for the entire graph:
+H = F(H,X) (2.9)
+O= G(H,XN) (2.10)
+where X represents the concatenation of the feature vectors for all nodes and edges in
+the graph, H denotes the concatenation of the state embeddings for all nodes, and XN
+includes only the node-specific features. The function F encapsulates the process of
+updating state embeddings across all nodes, while Ggenerates the final output based on
+these embeddings.
+A key aspect of this formulation is that, if F is a contractive mapping, the equation
+H = F(H,X) has a fixed-point solution H∗. This fixed-point solution can be found
+by repeatedly applying the update rule until convergence. In practice, GNNs iteratively
+apply the update function F to propagate information through the graph until the state
+embeddings reach a stable state.
+
+Chapter 2: Literature Review 30
+The functions F and Gcan be interpreted as feedforward neural networks whose param-
+eters are learned to optimize the node embeddings and outputs for a specific task, such
+as node classification, link prediction, or graph-level tasks. By leveraging these learned
+embeddings, GNNs are able to capture complex dependencies between nodes, enabling
+them to generalize well on tasks involving graph-structured data.
+In summary, GNNs build powerful representations for nodes by aggregating informa-
+tion from their neighbors in an iterative process, and their trainable parameters can be
+optimized to enhance performance on a variety of learning tasks. The fixed-point for-
+mulation of the embedding process offers a robust framework for capturing the complex
+dependencies inherent in graph-based problems.
+2.3.4.5 Benchmarking and Performance of GNNs
+Recent research has focused on benchmarking different GNN architectures to evaluate
+their effectiveness on various graph-based tasks. Dwivedi et al. [19] introduced a bench-
+marking framework for GNNs, providing a comprehensive comparison of multiple archi-
+tectures on real-world and mathematical graph datasets. Their study found that GNNs
+have demonstrated success across multiple domains, including computer science, math-
+ematics, biology, physics, and chemistry. The benchmark framework comprises diverse
+datasets, enabling fair model comparisons and facilitating research on new GNN designs.
+One significant application of GNNs is in solving NP-hard combinatorial optimization
+problems (COPs), such as the Traveling Salesman Problem (TSP). In this setting, GNNs
+are used to assign probabilities to edges as part of a predicted solution set. The perfor-
+mance of various GNN architectures on TSP was evaluated in terms of F1 score, training
+efficiency, and scalability.
+The study compared multiple GNN architectures, including Graph Convolutional Net-
+works (GCNs), GraphSAGE, Graph Attention Networks (GATs), and GatedGCNs. Among
+these, GatedGCNs and its edge-enhanced variant GatedGCN-E outperformed others in
+terms of F1 score and efficiency. The benchmark results for TSP edge classification
+indicated that GatedGCN-E with 16 layers achieved the highest test F1 score of 0.838,
+
+Chapter 2: Literature Review 31
+outperforming other models such as GCN (0.643), GraphSAGE (0.665), and GAT (0.671).
+This performance suggests that GatedGCNs are particularly effective in capturing com-
+plex dependencies and learning useful edge representations.
+These findings indicate that GatedGCNs are a promising choice for graph-based learn-
+ing tasks, particularly those involving complex combinatorial problems. Their ability to
+efficiently propagate information across graph structures while maintaining high predic-
+tive performance makes them a strong candidate for further exploration in real-world
+applications.
+2.4 Problems with Existing Systems
+Despite significant advancements in solving the Travelling Salesman Problem (TSP) and
+other combinatorial optimization (CO) problems, existing methods exhibit several critical
+limitations that hinder their applicability to large-scale instances. One of the primary
+challenges is the inherent computational complexity of CO problems, which are classi-
+fied as NP-hard. As the size of the problem instance increases, the search space grows
+exponentially, rendering exhaustive search methods computationally infeasible [68, 71].
+Neural solvers, while promising in providing flexible and adaptive solution methods, often
+struggle with scalability. Current neural approaches within the Learn-to-Search (L2S)
+and Learn-to-Predict (L2P) paradigms [61, 94] are particularly limited in managing the
+combinatorial explosion associated with larger instances. These methods typically fail to
+scale efficiently with the number of vertices due to the quadratic increase in the number of
+edges in fully connected Euclidean graphs, which are commonly used in TSP benchmarks.
+Graph sparsification emerges as a potential strategy to mitigate the scalability issue by
+reducing the number of edges, thereby simplifying the search space. However, existing
+sparsification techniques present their own set of challenges. Na¨ ıve edge elimination can
+disrupt the global structure of the graph and violate the cyclic constraints of the TSP,
+
+Chapter 2: Literature Review 32
+leading to suboptimal or infeasible solutions [34, 86]. Moreover, many current sparsifica-
+tion methods are tailored to specific problem instances or fail to maintain solution quality
+as the degree of sparsification increases.
+Additionally, traditional solvers such as Integer Linear Programming (ILP) solvers [3, 27],
+heuristic searches [54], and metaheuristic algorithms [74] often do not integrate well with
+preprocessing steps like sparsification and partitioning. This lack of integration limits the
+potential performance gains that could be achieved by combining these techniques with
+advanced neural methods.
+Furthermore, the majority of existing approaches do not effectively preserve the optimal
+tour edges during sparsification, which is crucial for maintaining the quality of the so-
+lutions. This limitation results in a substantial loss of solution space integrity, making
+it difficult to efficiently obtain near-optimal or optimal solutions. To summarize, the
+primary problems of existing systems in solving large-scale TSP instances include:
+i) Scalability Issues: The inability of both neural solvers and traditional methods
+to effectively manage the exponential growth of the search space as the problem
+size increases.
+ii) Edge Count Management: The quadratic increase in the number of edges in fully
+connected graphs exacerbates the computational complexity, making sparsification
+necessary yet challenging.
+iii) Preservation of Solution Integrity: Current sparsification techniques often fail
+to maintain the essential edges required for optimal or near-optimal tours, compro-
+mising solution quality.
+iv) Limited Integration with Preprocessing : Existing solvers do not effectively
+incorporate preprocessing steps such as sparsification and partitioning, limiting the
+overall efficiency and scalability.
+v) Instance-Specific Limitations: Many methods are designed for specific problem
+instances and lack the generalizability required for diverse and larger-scale applica-
+tions.
+
+Chapter 2: Literature Review 33
+Addressing these challenges is essential for advancing the field of combinatorial opti-
+mization and enabling the practical application of TSP solvers to real-world, large-scale
+problems.
+
+Chapter 3
+Proposed Methodologies
+Section 3.1 explores learning the exact optimal edge-preserving sparse graphs. Addition-
+ally, Section 3.1.1 explains our choice in Neural network architecure to identify optimal
+edges, after which we elaborate on the details in the next sections.
+Complementing our sparsification algorithm, Section 3.2 introduces our optimal parti-
+tioning algorithm. This algorithm employs a hierarchical method, starting with an exact
+theoretical formulation followed by heuristic or learned processes. By identifying pseudo-
+bridges—edges that appear in all optimal tours and reveal bridges when removed—we can
+partition the graph into smaller, more manageable subproblems. This method, combined
+with neural partitioning schemes, allows for efficient parallel processing of subproblems,
+further enhancing scalability.
+34
+
+Chapter 3 Methodology 35
+3.1 LES: Learnt Edge Sparsification Algorithm
+From earlier discussions, it is evident that existing neural solvers frequently encounter
+substantial computational complexity, limiting their scalability to larger graph instances.
+Methods such as Learning to Search (L2S) or Learning to Predict (L2P) show promise;
+however, many state-of-the-art algorithms still struggle with scalability when confronted
+with larger instances. The core challenge lies in the quadratic increase in edges—and thus,
+the computational complexity—as the vertex count grows, especially for fully connected
+Euclidean graphs.
+Real-world routing problems typically differ significantly from benchmarks, rarely involv-
+ing fully connected graphs. Consequently, sparsification emerges as a practical necessity,
+reducing computational overhead and aligning with realistic scenarios. However, na¨ ıve
+sparsification approaches might inadvertently remove edges critical to the optimal solu-
+tion due to disregarding global structural constraints inherent in TSPs.
+Motivated by these challenges, we introduce the Learnt Edge Sparsification (LES)
+algorithm. LES leverages Residual Gated Graph Convolutional Networks (Res-
+GatedGCN) to generate expressive edge embeddings, followed by a Multi-Layer Per-
+ceptron (MLP) classifier to estimate the likelihood that an edge is part of the optimal
+solution. Edges below a learned probability threshold are then sparsified, significantly
+reducing graph density while retaining critical edges.
+3.1.1 Edge Embedding Computation via Residual Gated GCN
+The core of LES involves computing meaningful edge embeddings using Residual Gated
+Graph Convolutional Networks. Formally, given a graph G = (V,E), each node vi ∈V
+and edge eij ∈Eare associated with embedding vectors h(l)
+i and e(l)
+ij respectively, updated
+at each layer l:
+h(l+1)
+i = h(l)
+i + NodeGatedConv
+(
+h(l)
+i ,{h(l)
+j : j ∈N(i)}
+)
+
+Chapter 3 Methodology 36
+e(l+1)
+ij = e(l)
+ij + EdgeGatedConv
+(
+e(l)
+ij ,h(l)
+i ,h(l)
+j
+)
+Here:
+• h(l)
+i ∈Rdn and h(l)
+ij ∈Rde represent node and edge embeddings respectively at layer
+l,
+• N(i) represents the neighborhood of vertex vi,
+• EdgeGatedConv and NodeGatedConv are gating mechanisms that control the flow
+of information, enhancing the network’s capacity to capture intricate global and
+local structures within the embeddings.
+hl
+i {hl
+j} {et
+ij}
+ht+1
+i {et+1
+ij }
+Ul V l Al Bl Cl
+Sum
+ReLU. σ
+Sumj
+Sum
+ReLU
+Figure 3.1: GatedGCN Layer
+3.1.2 Edge Classification via MLP with Custom Loss
+After obtaining expressive edge embeddings through the Residual Gated GCN, each edge
+embedding e(L)
+ij from the final GCN layer L is passed through a multilayer perceptron
+
+Chapter 3 Methodology 37
+(MLP) followed by a sigmoid activation to estimate the probability pij of the edge be-
+longing to the optimal tour:
+pij = σ
+(
+MLP
+(
+e(L)
+ij
+))
+(3.1)
+Custom Loss Function: To effectively handle the inherent class imbalance (optimal
+edges are significantly fewer than non-optimal ones) and to explicitly control the predicted
+sparsity, we propose the following custom loss function:
+LTotal = −
+∑
+c∈{0,1}
+wcyclog(ˆyc)
+  
+Weighted Cross-Entropy Loss
++ λ
+∑
+eij∈E
+ˆyij
+  
+Regularization on Positive Predictions
+(3.2)
+where:
+• yij is the ground-truth label indicating optimal edges (1 if optimal, 0 otherwise).
+• ˆyij represents the predicted probability that edge eij is part of the optimal tour.
+• wc are class-specific weights assigned to address class imbalance, where typically
+w1 >w0.
+• The regularization term λ penalizes excessive positive predictions, thus explicitly
+encouraging sparsity and counteracting overly greedy behavior.
+3.1.3 Sparsification via Thresholding
+Post-training, sparsification is performed by thresholding the predicted edge probabilities
+pij:
+Esparse = {eij ∈E |pij ≥τ} (3.3)
+
+Chapter 3 Methodology 38
+Here, τ is a hyperparameter chosen empirically or via validation to ensure an optimal
+trade-off between sparsity and solution quality.
+Figure 3.2: LES GatedGCN Model
+3.1.4 Avoiding Over-Reliance on Nearest Neighbor Heuristics
+Learning-based solvers commonly rely heavily on nearest-neighbor heuristics, frequently
+selecting locally optimal edges and exhibiting overly greedy behavior [53]. Recent research
+by Li et al. [53] illustrates that neural TSP solvers trained on uniformly distributed
+instances often deteriorate substantially when exposed to out-of-distribution or perturbed
+problem instances. Their findings indicate that such solvers excessively rely on nearest-
+neighbor density structures, leading to:
+• Overly greedy local decisions causing global suboptimality.
+• Weak generalization and robustness to structural variations in the dataset.
+• Vulnerability to performance degradation under instance perturbations.
+
+Chapter 3 Methodology 39
+In contrast, LES inherently mitigates greedy biases by using embeddings derived from
+Residual Gated GCNs. These embeddings inherently capture global graph structures
+beyond local nearest-neighbor interactions, thus improving robustness and generalization.
+3.2 Optimal Partitioning
+For partitioning sparse TSP graphs we have a hierarchical method. The first we describe
+the theoretical basis for our partitioning approach then we give our algorithm.
+G1
+G3
+G4
+G2
+Removing Pseudo Edges
+G1
+G3
+G4
+G2
+Neural
+Solvers
+Solve subgraphs Independently
+Figure 3.3: How our Algorithm Works
+The idea hinges on finding edges that connect densely connected subgraphs in the original
+graph. These are not exactly bridges because for a TSP solution to exist there can be any
+
+Chapter 3 Methodology 40
+bridges. Note how these edges are the links between the subgraphs and will be included
+in the TSP tour always. Given, if we can identify and remove these edges we can get
+subgraphs which are smaller and thus can be fed to solvers to improve time and efficiency
+without losing any accuracy on the larger solution.
+3.2.1 Exact Partitioning
+In 2.3.3 we have talked about existing graph partitioning methods. But these are general
+graph partitioning methods and does not utilize the nature of TSPs. So we introduce the
+idea of Pseudo-bridges:
+Definition
+Definition 3.1. Bridge : A bridge of a graph G is any edge in the graph whose
+removal disconnects G. [13]
+Definition
+Definition 3.2. Pseudo-Bridge : Let G= (V,E) be a graph, and let T∗ denote
+the set of all tours in G. An edge e∈E is a pseudo-bridge iff:
+1. ∀T ∈T∗, e∈T
+2. If G′= (V,E \{e}), then there exists at least one edge b∈E\{e}such that
+b is a bridge in G′.
+Mathematically, this can be expressed as:
+PseudoBridge(e,G) ⇐⇒(∀T ∈T∗, e∈T) ∧(∃b∈E\{e}, Bridge(b,G′))
+where G′= (V,E \{e}).
+Lemma
+Lemma 3.3. The bridges revealed in by eliminating a pseudo-bridge must be have
+been pseudo-bridges in the original graph themselves. Thus they must be in the
+optimal tour themselves.
+
+Chapter 3 Methodology 41
+Removing all pseudo-bridges leaves us with different disconnected subgraphs sayG1,··· ,Gk
+that can be solved indepenpendently for their SHPPs. This provides us with the oppur-
+tunity to setup a divide and conquer scheme for solving and combining each subgraph.
+We can thus formulate an exact partitioning for sufficiently sparse TSPs. We construct
+SHPP to connect endpoints of pseudobridges.
+3.2.1.1 Finding Pseudo-bridges
+The idea for pseudobridges closely align with the idea of 2 edge cuts in [24] We use their
+GK-2E algorithm for finding optimal cuts in the graph. We build the library pycuts
+around this. For sufficiently sparse graphs the probability of Pseudo-bridges to exist in
+heatmaps should be unusually high. We can pick top kcandidates and then try to search
+for our sufficient conditions to identify pseudo-bridges and thus partition the graph. We
+can then use other neural methods which are known to scale to small instances and run
+them parallely to get an optimal tour. We can also use heuristic methods such as K-means
+or K-nearest Neighbours to first reduce the graph to find edges such as these.
+3.2.2 Integration of LES with Optimal Partitioning through
+Pseudo-Bridges
+The sparsified graphs produced by the LES algorithm facilitate efficient and exact parti-
+tioning by naturally revealing structural bottlenecks that can be exploited algorithmically.
+As previously established, graph partitioning approaches generally do not account explic-
+itly for the TSP constraints. We overcome this limitation by leveraging the concept of
+pseudo-bridges, which is particularly effective in sparse graphs obtained via LES.
+Formally, once we have computed edge probabilities pij through the LES algorithm (Sec-
+tion 3.1), edges identified as highly probable to belong to the optimal tour will be retained.
+Sparsification thus transforms the original dense graph G= (V,E) into a reduced graph
+Gsparse = (V,Esparse):
+
+Chapter 3 Methodology 42
+Esparse = {eij ∈E |pij ≥τ}
+A significant advantage of using LES is that the resulting sparsified graph inherently
+highlights structural weaknesses and bottlenecks. In particular, edges critical for con-
+nectivity (pseudo-bridges) emerge more prominently in sparse graphs. These edges can
+subsequently be leveraged for exact partitioning, enabling scalable divide-and-conquer
+approaches.
+This naturally bridges the gap between sparsification and exact partitioning schemes
+discussed in Section 3.1.
+3.2.3 Proposed Algorithm
+Below we present our proposed optimal partition algorithm. It uses Georgiadis et al. ’s
+[24] GK-2E algorithm to find the PseudoBridges as the 2 edge cuts idea of theirs can be
+applied to the pseudobridge idea in the TSP context.
+OptimalPartition(G,PB )
+1 if PB is null or empty
+2 PB = FindPseudoBridges(G)
+3 if PB is empty or|V(G)|≤ λ
+4 return SolveTSP(G)
+4 else
+5 (Subgraphs, AePair, PBPair, PBSubLists) = RemovePseudoBridges(G,PB )
+6 Solutions = ∅
+7 for each (subgraph, PBSub) in (Subgraphs, PBSubLists)
+8 subSolution = OptimalPartition(subgraph,PBSub )
+9 Solutions = Solutions∪{subSolution}
+10 combinedSolution = CombineSubSolutions(Solutions,AePair,PBPair )
+11 return combinedSolution
+1
+Algorithm 1: Main Method: Optimal Partition for Sparse TSPs
+
+Chapter 3 Methodology 43
+FindPseudoBridges(G)
+1 PB = VEcut-GK-2E(G)
+2 return PB
+1
+Algorithm 2: Helper Function: Find PseudoBridge
+RemovePseudoBridges(G, PB)
+1 Pick an edge (u, v) from PB uniformly at random
+2 G = G \ (u, v)
+3 Find a bridge ( x, y) in G
+4 G = G \ (x, y)
+5 Find connected components G1, G2 of G
+6 Define artificial edges: e1 = (u, x) and e2 = (v, y)
+7 G1 = G1 + e1, G2 = G2 + e2
+8 AePair = (e1, e2), PBPair = ((u, v), (x, y))
+9 PB1 = ∅, PB2 = ∅
+10 for each (a, b) in PB \ {(u, v)}
+11 if (a, b) lies entirely in G1
+12 else
+13 if (a, b) lies entirely in G2
+14 PB2 = PB2 ∪ {(a, b)}
+15 return ({G1, G2}, AePair, PBPair, {PB1, PB2})
+1
+Algorithm 3: Helper Function: Remove Pseudo Bridge
+CombineSubSolutions(Solutions, AePair, PBPair )
+1 combinedTSPtour = ∅
+2 for each solution in Solutions
+3 for each Aedge in AePair
+4 solution = solution −Aedge
+5 combinedTSPtour = combinedTSPtour ∪solution
+6 for each PB in PBPair
+7 combinedTSPtour = combinedTSPtour + PB
+8 return combinedTSPtour
+1
+Algorithm 4: Helper Function: Combine Sub Tours
+
+Chapter 3 Methodology 44
+3.2.4 Explanation of the Algorithms
+3.2.4.1 OptimalPartition
+Lines 1–2 check whether PB is null or empty. If so, line 2 updates PB by calling
+FindPseudoBridges(G). Next, line 3 tests whether PB is empty or if |V(G)|≤ λ.
+If either condition is true, the algorithm returns the result of SolveTSP(G). Other-
+wise, lines 4–5 call RemovePseudoBridges(G,PB ), which returns updated subgraphs
+(Subgraphs), artificial edges ( AePair), a pair of removed edges ( PBPair), and pseudo-
+bridge subsets for each component ( PBSubLists). In line 6, the algorithm initializes
+Solutions to an empty set. Then lines 7–9 loop over each subgraph and its associ-
+ated pseudo-bridge list, recursively calling OptimalPartition on the smaller problem.
+The results are collected in Solutions. Next, line 10 merges the partial TSP tours with
+CombineSubSolutions(Solutions,AePair,PBPair ). Finally, line 11 returns the com-
+bined tour as the output of OptimalPartition.
+3.2.4.2 FindPseudoBridges
+Line 1 computes the set of pseudo-bridgesPB using the specialized subroutine VEcut-GK-2E(G)
+that is and implementation of [24], We use their code directly using cython. Then, line 2
+simply returns this newly computed set of edges PB.
+3.2.4.3 RemovePseudoBridges
+In line 1, the algorithm randomly picks an edge (u,v) from PB. Line 2 removes that edge
+from G. Next, line 3 finds a bridge ( x,y) in the modified graph, and line 4 removes that
+bridge as well. Line 5 identifies the two connected componentsG1 and G2 that result from
+removing (x,y). Then line 6 defines the artificial edges e1 = (u,x) and e2 = (v,y), while
+line 7 inserts e1 into G1 and e2 into G2. Lines 8–9 record these edges in AePair and the
+removed edges in PBPair, and initialize PB1 and PB2 to empty sets. Lines 10–14 iterate
+through the remaining edges of PB (excluding (u,v) that was removed), distributing each
+edge to PB1 or PB2 depending on whether it lies entirely in G1 or G2. Finally, line 15
+
+Chapter 3 Methodology 45
+returns the modified subgraphs, the artificial edge pair, the removed-edge pair, and the
+pseudo-bridge sets for each subgraph.
+3.2.4.4 CombineSubSolutions
+Line 1 initializes the combined TSP tour, combinedTSPtour, to be empty. Lines 2–6
+loop over each solution in Solutions, removing the artificial edges stored in AePair from
+that partial tour. The algorithm then unites these partial tours into combinedTSPtour.
+Additionally, any edges in PBPair (the removed bridges or pseudo-bridges) are added
+back to ensure continuity of the overall path. Finally, line 7 returns this fully merged
+TSP tour.
+3.2.5 Complexity Analysis
+Consider the algorithm in Algorithm 1 for computing an optimal tour in a sparse Trav-
+eling Salesman Problem (TSP) instance. The algorithm recursively partitions the input
+graph by identifying and subsequently removing pseudo-bridges, thereafter invoking the
+Concorde TSP solver on subgraphs that have been reduced below a predetermined thresh-
+old λ. We denote by V and E the number of vertices and edges in the original graph,
+respectively, and assume that the graph is sparse (i.e., E = Θ( V)). Furthermore, the
+graph is recursively partitioned into k approximately equal subgraphs.
+At the top level , the algorithm detects pseudo-bridges in the graph, an operation that
+requires
+Θ(Elog V).
+After the removal of pseudo-bridges, the graph is decomposed into k subgraphs. Each
+subgraph contains approximately V
+k vertices and E
+k edges, and the corresponding pseudo-
+bridge identification procedure on each subgraph incurs a time cost of
+Θ
+(E
+k log
+(V
+k
+))
+.
+
+Chapter 3 Methodology 46
+Since there are k such subgraphs, the aggregate cost at the first recursive level becomes
+k∑
+i=1
+Θ
+(E
+k log
+(V
+k
+))
+= k·Θ
+(E
+k log
+(V
+k
+))
+= Θ
+(
+Elog
+(V
+k
+))
+.
+More generally, at the ith level of recursion, each subgraph contains approximately V
+ki
+vertices and E
+ki edges, so that the cost per subgraph is
+Θ
+(E
+ki log
+(V
+ki
+))
+.
+Summing over all ki subgraphs, the cumulative cost for level i is
+ki ·Θ
+(E
+ki log
+(V
+ki
+))
+= Θ
+(
+Elog
+(V
+ki
+))
+.
+Let the recursion terminate at the bottom-most level ℓ, where
+V
+kℓ ≤λ.
+This inequality implies that
+ℓ≥logk
+V
+λ.
+For the purpose of this analysis, we assume that the recursion terminates exactly after
+ℓ= logk
+V
+λ
+levels. Consequently, the overall cost for pseudo-bridge detection across all recursion
+levels is
+ℓ−1∑
+i=0
+Θ
+(
+Elog
+(V
+ki
+))
+= Θ
+(
+E
+ℓ−1∑
+i=0
+(log V −ilog k)
+)
+.
+Evaluating the sum, we have
+ℓ−1∑
+i=0
+(log V −ilog k) = ℓlog V −log k·(ℓ−1)ℓ
+2 = Θ
+(
+log Vℓ
+k
+ℓ(ℓ−1)
+2
+)
+.
+
+Chapter 3 Methodology 47
+Recalling that
+ℓ= logk
+V
+λ,
+we substitute to obtain
+log Vℓ
+k
+ℓ(ℓ−1)
+2
+= ℓlog V−ℓ(ℓ−1)
+2 log k= logk
+(V
+λ
+)
+·log V−1
+2
+[
+logk
+(V
+λ
+)(
+logk
+(V
+λ
+)
+−1
+)]
+log k.
+Thus, the overall cost for the pseudo-bridge detection across all recursion levels is bounded
+by
+Tbridge = Θ
+(
+E·log Vℓ
+k
+ℓ(ℓ−1)
+2
+)
+= Θ
+(
+E·
+(
+log V ·logk
+V
+λ −1
+2 log k·
+(
+logk
+V
+λ
+)2))
+.
+Assuming a sparse graph with E = Θ(V), this simplifies to
+Tbridge = Θ
+(
+V ·
+(
+log V ·logk
+V
+λ −1
+2 log k·
+(
+logk
+V
+λ
+)2))
+.
+Thus, the overall cost for the pseudo-bridge detection across all recursion levels is bounded
+by
+Tbridge = Θ
+(
+E·
+(
+log V ·logk
+V
+λ −1
+2 log k·
+(
+logk
+V
+λ
+)2))
+.
+Assuming a sparse graph with E = Θ(V), this expression becomes
+Tbridge = Θ
+(
+V ·
+(
+log V ·logk
+V
+λ −1
+2 log k·
+(
+logk
+V
+λ
+)2))
+.
+Next, we analyze the base-case complexity when the subgraphs are reduced to a size at
+most λ. At this stage, the algorithm invokes the Concorde TSP solver, whose complexity
+on a subgraph with n vertices is given by
+TConcorde(n) = Θ
+(
+n2.5 ·b(n)
+)
+,
+where b(n) denotes an auxiliary function encapsulating the branch-and-bound overhead
+and other heuristic refinements.
+
+Chapter 3 Methodology 48
+Since the number of base-case subgraphs is approximately V
+λ, the total cost incurred at
+the base level is
+Tbase = V
+λ ·Θ
+(
+λ2.5 ·b(λ)
+)
+= Θ
+(
+V ·λ1.5 ·b(λ)
+)
+.
+Finally, by aggregating the cost of the recursive pseudo-bridge detection with the base-
+case Concorde cost, the overall time complexity T(V,E) of the algorithm is given by
+T(V,E) = Θ
+(
+V ·
+(
+log V ·logk
+V
+λ −1
+2 log k·
+(
+logk
+V
+λ
+)2))
++ Θ
+(
+V ·λ1.5 ·b(λ)
+)
+.
+In summary, the overall time complexity is:
+T(V,E) = Θ
+(
+V ·
+(
+log V ·logk
+V
+λ −1
+2 log k·
+(
+logk
+V
+λ
+)2))
++ Θ
+(
+V ·λ1.5 ·b(λ)
+)
+.
+Now speaking of the memory complexity, since we need to create as many subgraphs as
+there exist it is nothing but the first part from our time complexity analysis which is:
+M(V,E) = Θ
+(
+V ·
+(
+log V ·logk
+V
+λ −1
+2 log k·
+(
+logk
+V
+λ
+)2))
+.
+3.3 Summary
+Our proposed architecture can be represented as following.
+Our proposed approach to solving large-scale routing problems comprises two key algo-
+rithms: a sparsification algorithm and an optimal partitioning algorithm. The sparsifi-
+cation algorithm (Section 3.1) aims to reduce the graph’s edge count while preserving
+optimal tour edges, utilizing mathematical heuristics and Graph Neural Networks to
+learn optimal edge-preserving sparse graphs. The optimal partitioning algorithm (Sec-
+tion 3.2) complements this by dividing the sparse graph into manageable subproblems,
+employing both an exact method based on pseudo-bridges and a heuristic approach for
+
+Chapter 3 Methodology 49
+Dense Graph
+Sparsify
+Assume Fully Connected
+Sparse Graph
+Partitioning
+Component
+G2
+G3
+G1
+SHPP Solvers
+Compose
+Divide
+Optionally Redivide
+Conquer
+TSP Solution
+Figure 3.4: Proposed Architecture
+Input Sparse Graph
+Identify
+Pseudo-
+Bridges
+Pseudo-Bridges in Red
+Partition
+G1
+G2
+G3
+G1
+G2
+Partitioning Component
+Figure 3.5: Partition Algorithm
+well-connected subgraphs. Together, these algorithms work to reduce problem complex-
+ity and enhance scalability for large-scale routing problems, potentially improving the
+performance of existing solvers and enabling the solution of larger problem instances.
+
+Chapter 4
+Implementation
+4.1 Graph Representation and Rationale
+4.1.1 TSP Edge Emphasis
+To address the Traveling Salesman Problem (TSP) as an edge-classification task, each
+TSP instance is treated as a weighted graph G= (V,E), where Vis the set of city nodes
+and E is the set of potential edges between these nodes. Edges encode the pairwise
+distances among the nodes. During training, each edge ( u,v) ∈E is assigned a binary
+label:
+yuv =
+
+
+
+1 if edge ( u,v) is in the optimal TSP tour,
+0 otherwise.
+This focus on edge-level classification ensures that the model learns which edges constitute
+the final TSP route, rather than attempting to characterize specific node properties.
+4.1.2 Feature Selection for edges
+We meticulously select features we believe will benefit in producing better embedding for
+edges, they are:
+50
+
+Chapter 4 Implementation 51
+• we
+max
+e′∈E
+(we′)
+•
+min
+e′∈E
+(we′)
+we
+• we
+max
+e′∈R(e)
+(we′)
+•
+min
+e′∈R(e)
+(we′)
+we
+• we
+max
+e′∈L(e)
+(we′)
+•
+min
+e′∈L(e)
+(we′)
+we
+where we is the weight of the current edge e, E is the set of all edges, and R(e) and
+L(e) are the sets of edges to the right and left neighbors of edge e, respectively. We pick
+these features from [20], these give us a good balance of low computation cost and high
+effectiveness.
+4.1.3 Data Flow in GatedGCN Layers
+Within each forward pass of the Gated Graph Convolutional Network (GatedGCN), node
+embeddings h(l)
+u and edge embeddings e(l)
+uv are updated through a message-passing proce-
+dure. The resulting representation after L layers captures progressively refined features
+relevant for predicting whether edge ( u,v) is part of an optimal route.
+4.2 Gated Mechanism
+4.2.1 Purpose of the Gate
+A key feature of the GatedGCN architecture is its gating mechanism, which adaptively
+regulates how much node information flows into each edge embedding. Since TSP heavily
+relies on the pairwise cost (distance) of an edge, the network must emphasize edges that
+are more likely to be in the tour (e.g., those with smaller distances). By learning a gate
+for each edge, the model can prioritize certain interactions and suppress unhelpful noise.
+
+Chapter 4 Implementation 52
+4.2.2 Gating Computation
+At layer l, the gate g(l)
+uv for edge ( u,v) is computed via a learned transformation of the
+node and edge embeddings from the previous layer:
+g(l)
+uv = σ
+(
+Wg
+[
+h(l)
+u ,h(l)
+v ,e(l)
+uv
+]
++ bg
+)
+,
+where σ is an element-wise non-linear activation (e.g., sigmoid), Wg and bg are learnable
+parameters, and [ ·] denotes concatenation. Here, g(l)
+uv lies in (0 ,1) for each dimension,
+providing a continuous “gate” that scales incoming edge updates.
+4.2.3 Edge Updates
+Following the gating operation, the updated edge embedding e(l+1)
+uv is produced by com-
+bining the gated information with the previous embedding:
+e(l+1)
+uv = e(l)
+uv + g(l)
+uv ⊙ϕ
+(
+h(l)
+u ,h(l)
+v ,e(l)
+uv
+)
+,
+where ϕ(·) is a learnable function (for instance, another linear or multi-layer perceptron
+step) and ⊙is the element-wise product. This update process allows the network to selec-
+tively integrate node-level signals into each edge representation, crucial for distinguishing
+TSP tour edges from non-tour edges.
+4.3 Edge-Level Classification
+4.3.1 Label Encoding
+Each edge is labeled with a binary value yuv ∈{0,1}. We have scripts that map ground-
+truth TSP solutions to these labels, assembling a clear target for supervised learning.
+
+Chapter 4 Implementation 53
+4.3.2 Final Output Layer
+After progressing through L GatedGCN layers, a final projection, a linear layer with a
+sigmoid, converts the edge embedding e(L)
+uv into a probability ˆyuv of belonging to the tour:
+ˆyuv = σ
+(
+Wout e(L)
+uv + bout
+)
+.
+Here, σ typically denotes the sigmoid function. With ˆ yuv in hand, the model can be
+trained to match the true label yuv.
+4.3.3 Training Objective and Batching
+During training, we processes multiple TSP graphs in each batch. For every edge ( i,j)
+in the batch, the GatedGCN produces a predicted probability ˆyij, indicating whether the
+edge is part of the optimal tour. The ground-truth label yij ∈{0,1}specifies the true
+status of each edge.
+To address class imbalance and encourage sparse positive predictions, the implementation
+applies a weighted cross-entropy loss with an extra regularization term as explained in
+equation 3.2.
+4.4 Residual Connections and Regularization
+4.4.1 Skip Connections
+To facilitate deeper architectures and reduce vanishing gradients, the GatedGCN imple-
+mentation employs skip connections. Each layer’s output merges with its input embed-
+dings, allowing edge and node features from earlier layers to persist through the network:
+˜e(l+1)
+uv = e(l+1)
+uv + e(l)
+uv.
+
+Chapter 4 Implementation 54
+This methodology preserves low-level attributes that are beneficial in steering accurate
+classifications.
+4.4.2 Additional Regularization
+We incorporates dropouts and batch normalization within the GatedGCN layers. These
+steps reduce overfitting, ensure smoother gradients, and improve generalization to unseen
+TSP instances.
+4.5 Overall Training Pipeline
+4.5.1 Architecture Configuration
+In our experiments, we carefully tuned the hyperparameters to achieve the best perfor-
+mance for our specific task. The model was trained on an RTX 4090 along with a Ryzen
+9 5950x CPU with 128 gigabytes of RAM running Ubuntu 24.04 LTS, to leverage high
+computational power, which allowed us to experiment with a relatively deep network and
+a moderate batch size. We trained the network for 70 epochs with a batch size of 8,
+as our empirical evaluations indicated that this configuration strikes a balance between
+learning stability and computational efficiency.
+The optimization process employs an adaptive learning rate strategy, starting with an
+initial learning rate of 0.001. We reduce the learning rate by a factor of 0.5 if the
+validation performance does not improve for 10 consecutive epochs . This dynamic
+adjustment helps the model converge smoothly while preventing it from getting trapped
+in local minima. We also enforce a minimum learning rate of 1 ×10−5 to ensure that
+the learning process does not become too sluggish. Our experiments demonstrated that
+omitting explicit L2 regularization (i.e., setting weight decay to 0.0) did not adversely
+affect performance, which is why we chose this setting.
+For the network configuration, we opted for a GatedGCN model with 4 layers to ef-
+fectively capture both local and global graph structures through message passing. The
+
+Chapter 4 Implementation 55
+hidden and output dimensions are both set to 65, maintaining a consistent feature
+space that simplifies the design and supports stable learning. The model benefits from
+residual connections and the inclusion of edge features, which together enhance gra-
+dient propagation and allow for richer representation learning. We use mean pooling as
+the readout function to aggregate information from neighboring nodes effectively.
+Regarding regularization, our experiments showed that applying dropout was unnecessary
+in our setting; thus, both the input feature dropout and general dropout are set
+to 0 .0. Instead, we rely on batch normalization to stabilize the training dynamics.
+Finally, the training progress is monitored at the end of every epoch, and the overall
+training duration is capped at 12 hours to ensure a practical balance between extensive
+experimentation and available computational resources.
+Overall, these hyperparameter choices were validated through rigorous experimentation,
+and they proved to be the most effective configuration for our model and dataset.
+4.5.2 Batching and Graph Processing
+During a training epoch, batches of graphs are processed in parallel. Node and edge
+embeddings are initialized, passed through each of the GatedGCN layers, and finally
+mapped into binary edge predictions. The optimization step updates gating parameters
+Wg,bg and other network weights.
+4.5.3 Performance Monitoring
+Metrics such as accuracy, precision, recall, or F1-score at the edge level are tracked.
+Consistent improvements in these metrics reflect the network’s progressing ability to pick
+out correct TSP edges. Checkpointing based on a validation set helps select the best-
+performing model configuration.
+
+Chapter 4 Implementation 56
+4.6 Optimal Partitioning: pycuts
+To implement optimal partitioning and to extend it’s benefits to many methods we de-
+velop a graph partitioning library pycuts. We utilize the GK-2E algorithm [24] to effi-
+ciently find optimal 2-edge cuts or pseudobridges. Their C++ implementation is wrapped
+in a Python library using Cython to enable seamless integration into our system. Our
+approach follows a recursive strategy where graphs exceeding a predefined size thresh-
+old ( λ) are processed using GK-2E, while smaller graphs are directly solved using the
+Concorde TSP solver via the PyConcorde library.
+4.6.1 Algorithm Workflow
+4.6.1.1 Preprocessing
+The algorithm begins by taking a sparse graph G as input. It first checks whether the
+size of G exceeds a predefined threshold λ. If |G|≤ λ, the graph is sent directly to the
+Concorde solver; otherwise, the algorithm proceeds with partitioning using the GK-2E
+method.
+4.6.1.2 Identifying 2-Edge Cuts
+Next, the GK-2E algorithm is employed to identify optimal 2-edge cuts, also known as
+pseudobridges. This process generates an unordered list of candidate cuts, from which
+a single cut is randomly selected. This randomness helps prevent the algorithm from
+getting trapped in a local minimum where poor cut choices could lead to suboptimal
+partitions.
+4.6.1.3 Finding Bridges
+After the removal of the selected pseudobridge, NetworkX’s bridge-finding functions are
+used to identify additional bridges that become apparent in the modified graph. The pair
+
+Chapter 4 Implementation 57
+corresponding to the pseudobridge is then removed and logged for later reconstruction of
+the solution.
+4.6.1.4 Partitioning the Graph
+Subsequently, the algorithm identifies the connected components of the graph. To ensure
+structural consistency, artificial edges with zero weight are introduced between the newly
+disconnected components within each subgraph. These subgraphs are then recursively
+fed back into the algorithm for further processing.
+4.6.1.5 Distributing Pseudobridges
+The identified pseudobridges are distributed between the subgraphs, ensuring that each
+subgraph retains the necessary structural information. Each subgraph undergoes the
+same recursive processing as the original graph, following the established workflow.
+4.6.1.6 Reconstructing the Solution
+Once the recursive processing is complete and partial solutions have been obtained, the
+algorithm uses the logged pseudobridges to stitch the tour back together. The artificial
+edges that were added during partitioning are removed, thereby restoring the original
+structure of the problem. The final result is a fully optimized tour.
+4.7 Additional Considerations
+While our current implementation leverages the Concorde solver for handling smaller
+subgraphs, there are several avenues for improvement. Below, we outline key areas that
+can enhance the efficiency and effectiveness of our approach:
+
+Chapter 4 Implementation 58
+• Neural Combinatorial Optimization (Neural CO): Traditional solvers like
+Concorde, while effective, may not always be the most efficient for solving combina-
+torial optimization problems. Recent advancements in Neural CO models suggest
+that they can provide faster solutions. Replacing Concorde with a well-trained
+Neural CO model could lead to modest performance improvements.
+• Parallelization: Currently, subgraphs are processed sequentially, where solutions
+for smaller graphs are computed and added one after another. Implementing a par-
+allelized approach—where multiple subgraphs are solved simultaneously and their
+results merged—can substantially reduce overall computation time.
+• Scalability and Maintainability: Ensuring that pycuts remains both maintain-
+able and extensible is a priority. Future improvements should focus on:
+– Efficient handling of large-scale graphs.
+– Improved cut-selection heuristics for better partitioning results.
+– Exploring alternative algorithms for graph partitioning to enhance perfor-
+mance.
+By continuously refining and optimizing our approach, we aim to develop pycuts into a
+robust and efficient tool for graph partitioning.
+
+Chapter 5
+Experimental Results
+In this chapter, we present a comprehensive analysis of the experimental evaluation con-
+ducted to assess the performance of our GatedGCN-based TSP edge classifier. We de-
+scribe the methodology, datasets, evaluation metrics, and comparative results, followed
+by discussions on computational performance and potential limitations. The experimen-
+tal results are intended to validate both the efficacy and efficiency of our approach when
+compared to existing methods in the literature.
+5.1 Experimental Setup
+5.1.1 Dataset Generation and Benchmarking Protocol
+The evaluation of our model was performed on instances generated in accordance with the
+TSPLIB-95 standard[75]. For each problem size, instances were generated by uniformly
+sampling N random points in the Euclidean space bounded within [0 ,1] ×[0,1]. The
+generated datasets were split into training, validation, and test sets, ensuring that the
+distribution of graph sizes and edge properties was consistent across these partitions. For
+benchmarking purposes, each graph size was evaluated over 100 independent instances.
+59
+
+Chapter 5 Experimental Results 60
+5.2 Evaluation Metrics
+To evaluate the performance of our edge classification model, we primarily focused on the
+following metrics:
+• Accuracy: The percentage of correctly classified edges with respect to the ground-
+truth TSP tour.
+• Edge Sparsification Ratio ( ESR): This metric quantifies the reduction in the
+number of edges relative to a fully connected graph.
+• Edge Preservation Percentage(%EP): The percentage of edges that are pre-
+served after the sparsification process.
+These metrics enable a detailed assessment of both the model’s ability to correctly identify
+optimal tour edges and its effectiveness in reducing graph complexity.
+5.3 Results and Comparative Analysis
+5.3.1 Sparsification Performance
+Table 5.1 summarizes the sparsification results across different graph sizes. For each
+size, the training data size, correctness of the edge classification, percentage of edges
+preserved, and the resulting Edge sparsification ratio, ESR N : E are reported. As the
+graph size increases, our model consistently maintains high accuracy, while the relative
+edge preservation percentage decreases, leading to more efficient sparsification. This is in
+line with our own hypothesis on this where we said including more robust edge features
+and using using Graph Convolutional networks provide better results. This achieves our
+objectives O1 through O3 by beating the current SoTA in sparsification.
+
+Chapter 5 Experimental Results 61
+Graph size (N) Training Data Size % Correctness % EP ESR
+20 100k 99.95% 16.87% 1:1.60
+50 50k 99.84% 10.24% 1:2.51
+100 10k 99.56% 5.62% 1:2.78
+200 5k 99.62% 2.95% 1:2.93
+500 1k 99.78% 1.50% 1:3.75
+Table 5.1: Sparsification Results across Different Graph Sizes
+5.3.2 Comparison with State-of-the-Art Methods
+Table 5.2 provides a comparative analysis between our approach and several existing
+methods. The methods compared include classical classifiers [20] as well as recent neural
+architectures such as the modified Graph Attention Network (GAT) approaches proposed
+by Lischka et al. (2024) [56]. Our method, Learnt Edge Sparsification (LES) not only
+achieves higher accuracy but also results in a more pronounced edge reduction.
+Method Accuracy Edges Preserved ( ESR) Training Size
+Fitzpatrick et al. 2021 97.1% 49512 1:4.95 2K
+Lischka et al. 2024 (Node based) 98.06% 30491 1:3.05 10M
+Lischka et al. 2024 (Node Free) 97.48% 27594 1:2.76 10M
+knn 81.98% 30000 1:3 -
+1-tree 63.79% 30000 1:3 -
+LGS 99.56% 27754 1:2.78 10K
+Table 5.2: Performance Comparison with Existing Methods
+
+Chapter 5 Experimental Results 62
+5.3.3 Visual Results
+Figures 5.2 and its subsequent counterparts illustrate the TSP instances before and after
+sparsification for problem sizes 20 and 50. These visualizations confirm that our model is
+effective at retaining the essential structure of the TSP tour while significantly reducing
+the number of superfluous edges.
+Figure 5.1: TSP-20 Instance: Comparison of the Complete Graph (Before) and the
+Sparsified Graph (After)
+Figure 5.2: TSP-50 Instance: Comparison of the Complete Graph (Before) and the
+Sparsified Graph (After)
+5.3.4 Runtime Performance and Efficiency
+In addition to classification accuracy, the efficiency of the proposed method was assessed
+by comparing the runtime performance of our sparsification technique integrated with
+the pycuts TSP solver against the well-known Concorde solver. Figure 5.3 depicts the
+
+Chapter 5 Experimental Results 63
+relative runtime, normalized to Concorde’s performance, across various graph sizes. On
+average, pycuts exhibits a reduction in computational time, especially as the problem
+size increases, achieving up to a 25% reduction for graphs with 500 nodes. This is inline
+with our own hypothesis that breaking down the problems into smaller versions makes it
+much easier and not to mention faster to solve.
+20 nodes 50 nodes 100 nodes 200 nodes 500 nodes
+0.0
+20.0
+40.0
+60.0
+80.0
+100.0
+120.0
+100 100 100 100 100
+90
+83.3 82.9 79.8
+74.95
+Relative Time (%)
+Concorde pycuts
+Figure 5.3: Relative Runtime Performance: pycuts vs. Concorde across Graph Sizes
+5.4 Discussion
+The experimental results demonstrate that the proposed GatedGCN-based edge classifier
+is highly effective in identifying the critical edges that form the optimal TSP tour. The
+following points summarize our key observations:
+• High Classification Accuracy: The model achieves near-perfect edge classifica-
+tion across various graph sizes, with accuracy consistently above 99.5%.
+• Efficient Sparsification: As the number of nodes increases, our approach results
+in a more aggressive reduction in the number of edges, leading to significantly
+sparser graphs without compromising the tour’s optimality.
+
+Chapter 5 Experimental Results 64
+• Comparative Advantage: Our method outperforms both classical and recent
+deep learning-based approaches, in terms of both accuracy and sparsification ratio,
+while requiring a relatively small training dataset (10K instances).
+• Runtime Benefits: When integrated with the pycuts solver, the sparsification
+leads to improved computational efficiency. The experimental data suggest that
+our approach can reduce the relative runtime by up to 25% compared to using the
+Concorde solver on fully connected graphs.
+5.5 Conclusion
+The experimental evaluation confirms that our GatedGCN-based framework is robust and
+scalable for TSP edge classification and sparsification. By significantly reducing the num-
+ber of edges while preserving the optimal tour, the proposed method not only enhances
+computational efficiency but also sets a new benchmark in accuracy when compared to
+state-of-the-art methods. And when combined with pycuts we get even more favourable
+results. Future work may focus on further optimizing the gating mechanism and exploring
+alternative architectures to handle even larger problem instances.
+
+Chapter 6
+Conclusions
+This project aims to devise a general way to boost NCO methods via some learned
+prepossessing. We are attempting to devise a sparsification scheme that preserves the
+edges needed for optimal TSP solution. We also introduce a novel partitioning scheme
+that should boost NCO methods via parallelizing sub-tours. To conclude with we find
+that using Residual GatedGCNs to sparsify instances and coupled along with our efficient
+graph partitioning scheme, we achieve SOTA results in both time and accuracy, thus
+proving our claims.
+6.1 Research Summary
+Our research introduces two innovative methodologies designed to tackle the compu-
+tational complexity inherent in large-scale Traveling Salesman Problems (TSPs). The
+first method, termed the Learnt Edge Sparsification (LES) algorithm, leverages Resid-
+ual Gated Graph Convolutional Networks (ResGatedGCNs) to compute expressive edge
+embeddings that capture both local and global graph structures. By feeding these embed-
+dings into a Multi-Layer Perceptron (MLP) classifier—with a custom loss function that
+addresses class imbalance and enforces sparsity—LES effectively estimates the likelihood
+65
+
+Chapter 6 Conclusions and Future Work 66
+of each edge being part of the optimal tour. This approach not only reduces the num-
+ber of edges but also avoids over-reliance on greedy nearest-neighbor heuristics, thereby
+ensuring that critical connectivity is maintained.
+Complementing LES, the optimal partitioning algorithm employs the novel concept of
+pseudo-bridges—edges that are present in every optimal tour and whose removal ex-
+poses vital graph partitions. Through a hierarchical process, the algorithm identifies
+these pseudo-bridges, partitions the graph into smaller subgraphs, and then solves these
+subproblems independently, either exactly or via heuristic methods.
+6.2 Future Work Plan
+A promising direction for future work lies in refining the preprocessing pipeline through
+ad hoc improvements. Future studies could explore adaptive thresholds and tailored
+heuristics that dynamically adjust the sparsification rules based on instance-specific char-
+acteristics. Such modifications could further enhance the ability to preserve crucial edges
+while simultaneously reducing computational overhead. By fine-tuning these heuristics,
+it may be possible to strike an optimal balance between the sparsity of the graph and the
+retention of structural details essential for generating high-quality TSP solutions.
+Another avenue for exploration is the development and integration of more advanced
+graph neural network architectures. Although our work leverages the strengths of Resid-
+ual GatedGCNs, alternative frameworks such as transformer-based graph networks or
+more expressive message-passing models hold significant promise. These architectures
+could better capture both local and global graph structures through multi-scale repre-
+sentations, potentially leading to even greater gains in both solution quality and com-
+putational efficiency. Such advancements in GNN design would not only benefit TSP
+optimization but could also extend to a wider array of combinatorial optimization prob-
+lems.
+Improving edge attention mechanisms represents a further enhancement opportunity. By
+developing sophisticated attention models that explicitly quantify the importance of each
+
+Chapter 6 Conclusions and Future Work 67
+edge, future research may enable the network to more effectively discern which edges
+are critical for maintaining optimal substructure connectivity. This targeted approach to
+sparsification could lead to a more nuanced preservation of essential graph components,
+ultimately improving the performance of the overall optimization process.
+Moreover, integrating large neighborhood search (LNS) methods with our current frame-
+work could provide substantial benefits. LNS strategies are well-known for their ability to
+escape local optima and refine solutions by exploring broader solution spaces. Combin-
+ing LNS with our parallelized sub-tour generation and subsequent post hoc improvement
+techniques, such as additional local search or fine-tuning phases, could further enhance
+both the accuracy and robustness of the obtained solutions. This hybrid approach is
+expected to offer a powerful tool for navigating the trade-offs between solution quality
+and computational speed.
+
+Bibliography
+[1] 28.19. reduction of hamiltonian cycle to traveling salesman — opendsa
+data structures and algorithms modules collection. https://opendsa-
+server.cs.vt.edu/ODSA/Books/Everything/html/hamiltonianCycle to TSP.html.
+[2] Ahn, S., Seo, Y., and Shin, J. Learning what to defer for maximum independent
+sets. In International conference on machine learning (2020), PMLR, pp. 134–144.
+[3] Applegate, D. L., Bixby, R. E., Chvat ´al, V., and Cook, W. J. A compu-
+tational study. Princeton University Press, 2006.
+[4] BellmanRichard. Dynamic programming treatment of the travelling salesman
+problem. Journal of the ACM (JACM) (jan 1 1962).
+[5] Bello, I., Pham, H., Le, Q. V., Norouzi, M., and Bengio, S. Neural
+combinatorial optimization with reinforcement learning, 2017.
+[6] Bengio, Y., Lodi, A., and Prouvost, A. Machine learning for combinatorial
+optimization: a methodological tour d’horizon, 2020.
+[7] Berto, F., Hua, C., Park, J., Luttmann, L., Ma, Y., Bu, F., Wang, J.,
+Ye, H., Kim, M., Choi, S., Zepeda, N. G., Hottung, A., Zhou, J., Bi,
+J., Hu, Y., Liu, F., Kim, H., Son, J., Kim, H., Angioni, D., Kool, W.,
+Cao, Z., Zhang, Q., Kim, J., Zhang, J., Shin, K., Wu, C., Ahn, S., Song,
+G., Kwon, C., Tierney, K., Xie, L., and Park, J. Rl4co: an extensive
+reinforcement learning for combinatorial optimization benchmark, 2024.
+[8] Bresson, X., and Laurent, T. The transformer network for the traveling sales-
+man problem, 2021.
+68
+
+Bibliography 69
+[9] Chen, X., and Tian, Y. Learning to perform local rewriting for combinatorial
+optimization, 2018.
+[10] Cheng, H., Zheng, H., Cong, Y., Jiang, W., and Pu, S. Select and optimize:
+Learning to solve large-scale tsp instances. In International Conference on Artificial
+Intelligence and Statistics (2023), PMLR, pp. 1219–1231.
+[11] Choo, J., Kwon, Y.-D., Kim, J., Jae, J., Hottung, A., Tierney, K., and
+Gwon, Y. Simulation-guided beam search for neural combinatorial optimization,
+2022.
+[12] Cohen, M. B., Lee, Y. T., and Song, Z. Solving linear programs in the current
+matrix multiplication time, 2020.
+[13] Cormen, T. H., Leiserson, C. E., Rivest, R. L., and Stein, C. Introduction
+to Algorithms, fourth edition . MIT Press, apr 5 2022. [Online; accessed 2024-07-09].
+[14] Croes, G. A. A method for solving traveling-salesman problems. Operations
+Research 6, 6 (1958), 791–812.
+[15] d O Costa, P. R., Rhuggenaath, J., Zhang, Y., and Akcay, A. Learning
+2-opt heuristics for the traveling salesman problem via deep reinforcement learning.
+In Asian conference on machine learning (2020), PMLR, pp. 465–480.
+[16] Dai, H., Khalil, E. B., Zhang, Y., Dilkina, B., and Song, L. Learning
+combinatorial optimization algorithms over graphs, 2018.
+[17] Dantzig, G., Fulkerson, R., and Johnson, S. Solution of a large-scale
+traveling-salesman problem. Journal of the Operations Research Society of America
+2, 4 (1954), 393–410.
+[18] Drori, I., Kharkar, A., Sickinger, W. R., Kates, B., Ma, Q., Ge, S.,
+Dolev, E., Dietrich, B., Williamson, D. P., and Udell, M. Learning to
+solve combinatorial optimization problems on real-world graphs in linear time. In
+2020 19th IEEE International Conference on Machine Learning and Applications
+(ICMLA) (Dec. 2020), IEEE.
+
+Bibliography 70
+[19] Dwivedi, V. P., Joshi, C. K., Luu, A. T., Laurent, T., Bengio,
+Y., and Bresson, X. Benchmarking graph neural networks. arXiv preprint
+arXiv:2003.00982 (2020).
+[20] Fitzpatrick, J., Ajwani, D., and Carroll, P. Learning to sparsify travelling
+salesman problem instances, 2021.
+[21] Francesco Alesiani, G. E., and Gkiotsalitis, K. Constrained clustering for
+the capacitated vehicle routing problem (cc-cvrp). Applied Artificial Intelligence 36 ,
+1 (2022), 1995658.
+[22] Fu, Z.-H., Qiu, K.-B., and Zha, H. Generalize a small pre-trained model to
+arbitrarily large tsp instances. Proceedings of the AAAI Conference on Artificial
+Intelligence 35, 8 (May 2021), 7474–7482.
+[23] Furnon, V., and Perron, L. Or-tools routing library.
+[24] Georgiadis, L., Giannis, K., Italiano, G. F., and Kosinas, E. Computing
+vertex-edge cut-pairs and 2-edge cuts in practice. In SEA 2021-19th International
+Symposium on Experimental Algorithms (2021), vol. 190, pp. 1–19.
+[25] Glover, F. Future paths for integer programming and links to artificial intelligence.
+Computers Operations Research 13 , 5 (1986), 533–549. Applications of Integer
+Programming.
+[26] Goodrich, M. T., and Tamassia, R. ”18.1.2 The Christofides Approximation
+Algorithm”, Algorithm design and applications. Wiley Global Education, nov 3 2014.
+[Online; accessed 2024-07-02].
+[27] Gurobi Optimization, LLC. Gurobi Optimizer Reference Manual, 2023.
+[28] Helsgaun, K. An effective implementation of the lin–kernighan traveling salesman
+heuristic, Oct. 2000.
+[29] Helsgaun, K. An extension of the lin-kernighan-helsgaun tsp solver for constrained
+traveling salesman and vehicle routing problems: Technical report.
+
+Bibliography 71
+[30] Hottung, A., Bhandari, B., and Tierney, K. Learning a latent search space
+for routing problems using variational autoencoders. In International Conference on
+Learning Representations (2021).
+[31] Hottung, A., Kwon, Y.-D., and Tierney, K. Efficient active search for com-
+binatorial optimization problems, 2021.
+[32] Hottung, A., and Tierney, K. Neural large neighborhood search for routing
+problems. Artificial Intelligence 313 (2022), 103786.
+[33] Hou, Q., Yang, J., Su, Y., Wang, X., and Deng, Y. Generalize learned
+heuristics to solve large-scale vehicle routing problems in real-time. In The Eleventh
+International Conference on Learning Representations (2023).
+[34] Hougardy, S., and Schroeder, R. T. Edge elimination in tsp instances, 2014.
+[35] Hudson, B., Li, Q., Malencia, M., and Prorok, A. Graph neural net-
+work guided local search for the traveling salesperson problem. arXiv preprint
+arXiv:2110.05291 (2021).
+[36] Ikotun, A. M., Ezugwu, A. E., Abualigah, L., Abuhaija, B., and Heming,
+J. K-means clustering algorithms: A comprehensive review, variants analysis, and
+advances in the era of big data. Information Sciences 622 (2023), 178–210.
+[37] Jin, Y., Ding, Y., Pan, X., He, K., Zhao, L., Qin, T., Song, L., and
+Bian, J. Pointerformer: Deep reinforced multi-pointer transformer for the traveling
+salesman problem, 2023.
+[38] Joshi, C. K., Cappart, Q., Rousseau, L.-M., and Laurent, T. Learning
+tsp requires rethinking generalization. Schloss Dagstuhl – Leibniz-Zentrum f¨ ur In-
+formatik.
+[39] Joshi, C. K., Laurent, T., and Bresson, X. An efficient graph convo-
+lutional network technique for the travelling salesman problem. arXiv preprint
+arXiv:1906.01227 (2019).
+
+Bibliography 72
+[40] Khan, A. A., Khan, M. U., and Iqbal, M. Multilevel graph partitioning
+scheme to solve traveling salesman problem. In 2012 Ninth International Conference
+on Information Technology - New Generations (2012), pp. 458–463.
+[41] Kim, M., Park, J., and Kim, J. Learning collaborative policies to solve np-hard
+routing problems, 2021.
+[42] Kim, M., Park, J., and kim, j. Learning collaborative policies to solve np-hard
+routing problems. In Advances in Neural Information Processing Systems (2021),
+M. Ranzato, A. Beygelzimer, Y. Dauphin, P. Liang, and J. W. Vaughan, Eds.,
+vol. 34, Curran Associates, Inc., pp. 10418–10430.
+[43] Kim, M., Park, J., and Park, J. Sym-nco: Leveraging symmetricity for neural
+combinatorial optimization, 2022.
+[44] Kim, M., Park, J., and Park, J. Learning to cross exchange to solve min-max
+vehicle routing problems. In The Eleventh International Conference on Learning
+Representations (2023).
+[45] Kirkpatrick. Kirkpatrick (1983) Optimization by simulated annealing.
+[46] Kool, W., van Hoof, H., Gromicho, J., and Welling, M. Deep policy
+dynamic programming for vehicle routing problems. In International conference on
+integration of constraint programming, artificial intelligence, and operations research
+(2022), Springer, pp. 190–213.
+[47] Kool, W., van Hoof, H., and Welling, M. Attention, learn to solve routing
+problems!, 2019.
+[48] Kotary, J., Fioretto, F., Van Hentenryck, P., and Wilder, B. End-to-
+end constrained optimization learning: A survey. arXiv preprint arXiv:2103.16378
+(2021).
+[49] Kwon, Y.-D., Choo, J., Kim, B., Yoon, I., Gwon, Y., and Min, S. Pomo:
+Policy optimization with multiple optima for reinforcement learning, 2020.
+[50] Land, A. H., and Doig, A. G. An automatic method of solving discrete pro-
+gramming problems. Econometrica 28, 3 (1960), 497–520.
+
+Bibliography 73
+[51] Li, J., Xin, L., Cao, Z., Lim, A., Song, W., and Zhang, J. Heterogeneous
+attentions for solving pickup and delivery problem via deep reinforcement learning.
+IEEE Transactions on Intelligent Transportation Systems 23 , 3 (2022), 2306–2315.
+[52] Li, S., Yan, Z., and Wu, C. Learning to delegate for large-scale vehicle rout-
+ing. In Advances in Neural Information Processing Systems (2021), M. Ranzato,
+A. Beygelzimer, Y. Dauphin, P. Liang, and J. W. Vaughan, Eds., vol. 34, Curran
+Associates, Inc., pp. 26198–26211.
+[53] Li, X., and Zhang, S. Learning-based tsp-solvers tend to be overly greedy, 2025.
+[54] Lin, S., and Kernighan, B. W. An effective heuristic algorithm for the traveling-
+salesman problem. Operations Research 21, 2 (1973), 498–516.
+[55] Lischka, A., Wu, J., Basso, R., Chehreghani, M. H., and Kulcs ´ar, B.
+Less is more – on the importance of sparsification for transformers and graph neural
+networks for tsp, 2024.
+[56] Lischka, A., Wu, J., Chehreghani, M. H., and Kulcs ´ar, B. A great archi-
+tecture for edge-based graph problems like tsp, 2024.
+[57] Lu, H., Zhang, X., and Yang, S. A learning-based iterative method for solving
+vehicle routing problems. In International conference on learning representations
+(2019).
+[58] Lucio Bianco, Aristide Mingozzi, S. R., and Spadoni, M. Exact and heuris-
+tic procedures for the traveling salesman problem with precedence constraints, based
+on dynamic programming. INFOR: Information Systems and Operational Research
+32, 1 (1994), 19–32.
+[59] Luo, F., Lin, X., Liu, F., Zhang, Q., and Wang, Z. Neural combinatorial
+optimization with heavy decoder: Toward large scale generalization. Advances in
+Neural Information Processing Systems 36 (2024).
+[60] Luu, Q. T. Traveling salesman problem: Exact solutions vs. heuristic vs. approx-
+imation algorithms. https://www.baeldung.com/cs/tsp-exact-solutions-vs-heuristic-
+vs-approximation-algorithms, may 11 2023. [Online; accessed 2024-07-02].
+
+Bibliography 74
+[61] Ma, Y., Cao, Z., and Chee, Y. M. Learning to search feasible and infeasi-
+ble regions of routing problems with flexible neural k-opt. In Advances in Neural
+Information Processing Systems (2023), vol. 36.
+[62] Ma, Y., Li, J., Cao, Z., Song, W., Guo, H., Gong, Y., and Chee, Y. M.
+Efficient neural neighborhood search for pickup and delivery problems.arXiv preprint
+arXiv:2204.11399 (2022).
+[63] Ma, Y., Li, J., Cao, Z., Song, W., Zhang, L., Chen, Z., and Tang, J.Learn-
+ing to iteratively solve routing problems with dual-aspect collaborative transformer.
+Advances in Neural Information Processing Systems 34 (2021), 11096–11107.
+[64] Malandraki, C., and Dial, R. B. A restricted dynamic programming heuristic
+algorithm for the time dependent traveling salesman problem. European Journal of
+Operational Research 90, 1 (1996), 45–55.
+[65] Matai, R., Singh, S., and Mittal, M. Traveling Salesman Problem: an
+Overview of Applications, Formulations, and Solution Approaches . 11 2010.
+[66] Mazyavkina, N., Sviridov, S., Ivanov, S., and Burnaev, E. Reinforcement
+learning for combinatorial optimization: A survey.Computers & Operations Research
+134 (2021), 105400.
+[67] Min, Y., Bai, Y., and Gomes, C. P. Unsupervised learning for solving the
+travelling salesman problem. In Thirty-seventh Conference on Neural Information
+Processing Systems (2023).
+[68] Nemhauser, G. L., and Wolsey, L. A. Integer and combinatorial optimization.
+In Wiley interscience series in discrete mathematics and optimization (1988).
+[69] Ouyang, W., Wang, Y., Weng, P., and Han, S. Generalization in deep rl for
+tsp problems via equivariance and local search. SN Computer Science 5 , 4 (Mar.
+2024).
+[70] Pan, X., Jin, Y., Ding, Y., Feng, M., Zhao, L., Song, L., and Bian, J.
+H-tsp: Hierarchically solving the large-scale traveling salesman problem. Proceedings
+of the AAAI Conference on Artificial Intelligence 37 , 8 (Jun. 2023), 9345–9353.
+
+Bibliography 75
+[71] Papadimitriou, C. H., and Steiglitz, K. Combinatorial optimization: algo-
+rithms and complexity . Courier Corporation, 2013.
+[72] Punnen, A. P. The Traveling Salesman Problem: Applications, Formulations and
+Variations. Springer US, Boston, MA, 2007, pp. 1–28.
+[73] Qiu, R., Sun, Z., and Yang, Y. Dimes: A differentiable meta solver for combi-
+natorial optimization problems. Advances in Neural Information Processing Systems
+35 (2022), 25531–25546.
+[74] Razali, N. M., Geraghty, J., et al. Genetic algorithm performance with
+different selection strategies in solving tsp. In Proceedings of the world congress on
+engineering (2011), vol. 2, International Association of Engineers Hong Kong, China,
+pp. 1–6.
+[75] Reinelt, G. Tsplib—a traveling salesman problem library. ORSA journal on com-
+puting 3, 4 (1991), 376–384.
+[76] Rosenkrantz, D., Stearns, R., and II, P. An analysis of several heuristics for
+the traveling salesman problem. SIAM J. Comput. 6 (09 1977), 563–581.
+[77] Schrijver, A. Theory of linear and integer programming . John Wiley & Sons,
+1998.
+[78] Schrijver, A. Combinatorial Optimization: Polyhedra and Efficiency , vol. B. 01
+2003.
+[79] Sui, J., Ding, S., Liu, R., Xu, L., and Bu, D. Learning 3-opt heuristics for
+traveling salesman problem via deep reinforcement learning. In Asian Conference on
+Machine Learning (2021), PMLR, pp. 1301–1316.
+[80] Sun, Z., and Yang, Y. Difusco: Graph-based diffusion solvers for combinatorial
+optimization. Advances in Neural Information Processing Systems 36 (2023), 3706–
+3731.
+[81] Taillard, ´E. D., and Helsgaun, K. Popmusic for the travelling salesman prob-
+lem. European Journal of Operational Research 272, 2 (2019), 420–429.
+
+Bibliography 76
+[82] Taillard, ´E. D., and Voss, S. Popmusic — Partial Optimization Metaheuristic
+under Special Intensification Conditions . Springer US, Boston, MA, 2002, pp. 613–
+629.
+[83] Thanh, P. D., Thanh Binh, H. T., and Lam, B. T. A survey on hybridiz-
+ing genetic algorithm with dynamic programming for solving the traveling salesman
+problem. In 2013 International Conference on Soft Computing and Pattern Recog-
+nition (SoCPaR) (2013), pp. 66–71.
+[84] Vaidya, P. Speeding-up linear programming using fast matrix multiplication. In
+30th Annual Symposium on Foundations of Computer Science (1989), pp. 332–337.
+[85] Vinyals, O., Fortunato, M., and Jaitly, N. Pointer networks, 2015.
+[86] Wang, Y., and Remmel, J.A Method to Compute the Sparse Graphs for Traveling
+Salesman Problem Based on Frequency Quadrilaterals . 03 2018, pp. 286–299.
+[87] Williams, R. J. Simple statistical gradient-following algorithms for connectionist
+reinforcement learning. Mach. Learn. 8, 3–4 (May 1992), 229–256.
+[88] Wu, Y., Song, W., Cao, Z., Zhang, J., and Lim, A. Learning improvement
+heuristics for solving routing problems. IEEE Transactions on Neural Networks and
+Learning Systems 33, 9 (2022), 5057–5069.
+[89] Xiao, J., Zhang, T., Du, J., and Zhang, X. An evolutionary multiobjective
+route grouping-based heuristic algorithm for large-scale capacitated vehicle routing
+problems. IEEE Transactions on Cybernetics 51 , 8 (2021), 4173–4186.
+[90] Xin, L., Song, W., Cao, Z., and Zhang, J. Multi-decoder attention model with
+embedding glimpse for solving vehicle routing problems. Proceedings of the AAAI
+Conference on Artificial Intelligence 35 , 13 (May 2021), 12042–12049.
+[91] Xin, L., Song, W., Cao, Z., and Zhang, J. Neurolkh: Combining deep learn-
+ing model with lin-kernighan-helsgaun heuristic for solving the traveling salesman
+problem. Advances in Neural Information Processing Systems 34 (2021), 7472–7483.
+
+Bibliography 77
+[92] Xin, L., Song, W., Cao, Z., and Zhang, J. Step-wise deep learning models for
+solving routing problems. IEEE Transactions on Industrial Informatics 17, 7 (2021),
+4861–4871.
+[93] Xu, Y., Fang, M., Chen, L., Xu, G., Du, Y., and Zhang, C. Reinforcement
+learning with multiple relational attention for solving vehicle routing problems.IEEE
+Transactions on Cybernetics 52, 10 (2022), 11107–11120.
+[94] Ye, H., Wang, J., Liang, H., Cao, Z., Li, Y., and Li, F. Glop: Learning
+global partition and local construction for solving large-scale routing problems in
+real-time. In Proceedings of the AAAI Conference on Artificial Intelligence (2024).
+[95] Zhang, Y., Mei, Y., Huang, S., Zheng, X., and Zhang, C. A route cluster-
+ing and search heuristic for large-scale multidepot-capacitated arc routing problem.
+IEEE Transactions on Cybernetics 52 , 8 (2022), 8286–8299.
+[96] Zheng, J., He, K., Zhou, J., Jin, Y., and Li, C.-M. Combining reinforce-
+ment learning with lin-kernighan-helsgaun algorithm for the traveling salesman prob-
+lem. In Proceedings of the AAAI conference on artificial intelligence (2021), vol. 35,
+pp. 12445–12452.
+[97] Zong, Z., Wang, H., Wang, J., Zheng, M., and Li, Y. Rbg: Hierarchically
+solving large-scale routing problems in logistic systems via reinforcement learning.
+In Proceedings of the 28th ACM SIGKDD Conference on Knowledge Discovery and
+Data Mining (New York, NY, USA, 2022), KDD ’22, Association for Computing
+Machinery, p. 4648–4658.

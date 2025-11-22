@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+:root {
+  --background: #030303;
+  --foreground: #f5f5f5;
+  --muted: #a3a3a3;
+  --border: #1a1a1a;
+  --card: #050505;
+  --accent: #ffffff;
+  --accent-strong: #d4d4d4;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  font-size: 19px;
+  line-height: 1.7;
+  min-height: 100vh;
+  letter-spacing: 0.01em;
+}
+
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
+}
+
+.article-content {
+  font-size: 1.05rem;
+  color: var(--foreground);
+}
+
+.article-content h2,
+.article-content h3,
+.article-content h4 {
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  letter-spacing: 0.08em;
+  font-size: 1rem;
+  color: var(--accent);
+  text-transform: none;
+  border-top: 1px solid #1f1f1f;
+  padding-top: 1.25rem;
+}
+
+.article-content p {
+  margin-top: 1.25rem;
+  color: #d9e3f8;
+}
+
+.article-content ul,
+.article-content ol {
+  margin-top: 1.25rem;
+  padding-left: 1.25rem;
+  color: #d9e3f8;
+}
+
+.article-content li + li {
+  margin-top: 0.5rem;
+}
+
+.article-content blockquote {
+  margin-top: 1.5rem;
+  border-left: 2px solid var(--accent);
+  padding-left: 1rem;
+  color: #f5f5f5;
+}
