@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   title: "vk1cd314 - yo",
   description:
     "stuff :)",
+  icons: {
+    icon: "/pickle.svg",
+  },
 };
 
 export default function RootLayout({
