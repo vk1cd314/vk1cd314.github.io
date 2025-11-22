@@ -1,6 +1,6 @@
 ---
 title: "Divide-and-Conquer TSP via Learned Sparsification and 2-Edge Cuts"
-date: "2025-11-22"
+date: "2025-11-02"
 tag: "TSP • Neural CO"
 summary: "Undergrad thesis: learning to sparsify and partition TSP instances so existing solvers scale to larger graphs."
 ---

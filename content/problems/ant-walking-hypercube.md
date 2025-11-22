@@ -1,6 +1,6 @@
 ---
 title: "Ant Walking on a Hypercube"
-date: "2025-11-22"
+date: "2025-10-22"
 tag: "Probability • Combinatorics"
 summary: "Hard"
 ---

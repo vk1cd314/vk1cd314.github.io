@@ -1,6 +1,6 @@
 ---
 title: "Noice Sequence"
-date: "2025-02-15"
+date: "2025-10-22"
 tag: "Combinatorics • Probability"
 summary: "Easy"
 ---

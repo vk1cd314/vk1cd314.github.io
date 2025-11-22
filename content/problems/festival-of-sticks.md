@@ -1,6 +1,6 @@
 ---
 title: "Festival of Sticks"
-date: "2025-02-16"
+date: "2025-10-22"
 tag: "Greedy • Extremal"
 summary: "Easy"
 ---

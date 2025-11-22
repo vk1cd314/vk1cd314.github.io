@@ -1,6 +1,6 @@
 ---
 title: "DS-Span: Single-Phase Discriminative Subgraph Mining"
-date: "2025-11-22"
+date: "2025-11-02"
 tag: "Graph Mining • Representation Learning"
 summary: "Notes on DS-Span, a one-pass discriminative subgraph miner that doubles as a feature generator for graph embeddings."
 ---

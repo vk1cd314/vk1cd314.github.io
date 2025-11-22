@@ -1,6 +1,6 @@
 ---
 title: "This Is The Easiest Problem Trust Me Bro"
-date: "2025-02-18"
+date: "2025-10-22"
 tag: "Number Theory • Greedy"
 summary: "Medium"
 ---
