@@ -23,7 +23,7 @@ export async function generateMetadata({
   try {
     const entry = await getCollectionEntry("research", slug);
     return {
-      title: `${entry.meta.title} — Research Notes`,
+      title: `${entry.meta.title} - Research Notes`,
       description: entry.meta.summary,
     };
   } catch {

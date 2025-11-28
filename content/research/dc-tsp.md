@@ -150,7 +150,7 @@ In other words, $\{e_1, e_2\}$ is a size-2 minimal edge cut.
 Two key facts make such cuts interesting in the TSP context:
 
 1. Any Hamiltonian cycle must cross each edge cut an **even** number of times.
-2. For a *minimal* 2-edge cut in a 2-edge-connected graph, a Hamiltonian cycle that exists must cross that cut **exactly twice**—using both edges in the cut.
+2. For a *minimal* 2-edge cut in a 2-edge-connected graph, a Hamiltonian cycle that exists must cross that cut **exactly twice**, using both edges in the cut.
 
 So, when we find a 2-edge cut $\{(u,v), (x,y)\}$ in a sparse TSP instance that still admits a Hamiltonian cycle, we can safely assume any optimal tour uses both edges to go “in and out” of the region defined by the cut.
 

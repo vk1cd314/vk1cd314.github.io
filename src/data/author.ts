@@ -8,7 +8,7 @@ export const author = {
   profileImage: "/profile.jpg",
   location: "Dhaka, Bangladesh",
   interestsStatement:
-    "I’m currently drawn to theoretical computer science—especially randomness, graph algorithms, and algorithmic efficiency—and I stay curious about distributed systems and large-scale engineering.",
+    "I’m currently drawn to theoretical computer science, especially randomness, graph algorithms, and algorithmic efficiency, and I stay curious about distributed systems and large-scale engineering.",
   socials: [
     { label: "GitHub", url: "https://github.com/vk1cd314", icon: "github" },
     {

@@ -48,7 +48,7 @@ $$
 s_t = s_{t-1} + s_{t-2}
 $$
 
-for as long as the new value stays within $[l, r]$. Because we always pick the minimum legal value, this sequence is the slowest-growing valid one—exactly what we want for maximising length. Let $k$ be the final index with $s_k \le r$; that $k$ is our answer.
+for as long as the new value stays within $[l, r]$. Because we always pick the minimum legal value, this sequence is the slowest-growing valid one, exactly what we want for maximising length. Let $k$ be the final index with $s_k \le r$; that $k$ is our answer.
 
 ### Why this is optimal
 
